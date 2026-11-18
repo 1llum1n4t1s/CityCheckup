@@ -20,6 +20,9 @@ namespace CityCheckup.Analysis;
 /// 観光客の世帯は除き、転出中の世帯の人も職探しをしないので除く。市外からの通勤者は地区に入れず別に数える。
 /// 住まいの位置は、世帯の PropertyRenter（住んでいる建物）か、ホームレスなら仮の住まいの建物で取る。
 /// メインスレッドで全件をたどるため重い。PanelUISystem がパネルを開いている間だけ、間隔を空けて呼ぶ。
+/// 市民・世帯の照会は Disabled の物も含める。Big City Performance などの mod は、人数を減らすために
+/// 市民・世帯へ Disabled を付けて一時的に止めるが、街の住人であることは変わらないため、数から外さない
+/// （外すと失業者が少なく出て、求人との比較の所見が出なくなる）。
 /// </remarks>
 internal sealed class CityScanner
 {
@@ -54,6 +57,7 @@ internal sealed class CityScanner
             ComponentType.ReadOnly<HealthProblem>(),
             ComponentType.ReadOnly<Deleted>(),
         },
+        Options = EntityQueryOptions.IncludeDisabledEntities,
     };
 
     public static EntityQueryDesc WorkplacesDesc() => new()
@@ -66,18 +70,21 @@ internal sealed class CityScanner
     {
         All = new[] { ComponentType.ReadOnly<Citizen>() },
         None = new[] { ComponentType.ReadOnly<Temp>(), ComponentType.ReadOnly<Deleted>() },
+        Options = EntityQueryOptions.IncludeDisabledEntities,
     };
 
     public static EntityQueryDesc HomelessDesc() => new()
     {
         All = new[] { ComponentType.ReadOnly<Household>(), ComponentType.ReadOnly<HomelessHousehold>() },
         None = new[] { ComponentType.ReadOnly<Temp>(), ComponentType.ReadOnly<Deleted>() },
+        Options = EntityQueryOptions.IncludeDisabledEntities,
     };
 
     public static EntityQueryDesc MovingAwayDesc() => new()
     {
         All = new[] { ComponentType.ReadOnly<Household>(), ComponentType.ReadOnly<MovingAway>() },
         None = new[] { ComponentType.ReadOnly<Temp>(), ComponentType.ReadOnly<Deleted>() },
+        Options = EntityQueryOptions.IncludeDisabledEntities,
     };
 
     public void Fill(LoadReport report)

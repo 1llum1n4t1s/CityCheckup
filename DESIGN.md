@@ -15,7 +15,7 @@ Cities: Skylines II の街が重い原因を見える化し、アンインスト
 | --- | --- |
 | `Mod`（`IMod`） | システムの登録だけを行う。ゲームの処理は変えない。 |
 | `CityCheckup.Core` | ゲーム型に依存しない判定・集計・JSON 生成。`LoadReport`（所見の判定と JSON）、`JobMarket`（学歴別の求職者と空き職場、地区ごとの失業）、`PathfindSources`（システム名から依頼元の分類と区間の差分）、`SpeedSampler`（速度が設定より遅い理由を、経路探し待ちと 1 フレームの処理時間に分けて集計）、`MissingAssets`（欠落アセットの集約）、`DlcDiagnostics`（DLC を要求する参照の集計と次の保存での予測）・`DlcRemoval`（処置の表、ブランドの付け替え先の選択、路線の車両指定の書き換え）・`DlcView`（DLC タブの表示単位と JSON）、`UiLanguage`（ゲームのロケールから日本語／英語を決める）、`JsonText`。 |
-| `Analysis/CityScanner` | 市民・世帯・職場をたどって `JobMarket` と世帯の集計を作る（読み取り専用）。 |
+| `Analysis/CityScanner` | 市民・世帯・職場をたどって `JobMarket` と世帯の集計を作る（読み取り専用）。市民・世帯は `Disabled` の物も数える（Big City Performance などが人数を減らすために一時的に止めた住人を数から外さないため）。 |
 | `Analysis/LoadProbeSystem` | 画面のフレームごとに、ゲーム自身の公開値（`SimulationSystem` の速度・1 フレームの処理時間、`PathfindResultSystem` の結果待ちと `queryStats`）を読む。区間の始めと終わりの `queryStats` の差から、依頼元システムごとの件数・成功数・探索の作業量を出す。 |
 | `Ui/PanelUISystem` | 負荷分析パネルのバインディング（グループ `cityCheckup`）。開いている間だけ集計を動かし、結果を JSON 文字列 1 本で UI へ渡す。表示言語（`locale` バインディング）も毎秒ゲームの言語設定から読んで渡す。 |
 | `Ui/CameraJump` | 「見に行く」でカメラを移す。 |
