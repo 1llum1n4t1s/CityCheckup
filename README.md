@@ -12,7 +12,7 @@ Cities: Skylines II の街を診断する mod（City Checkup、街の診断）�
 
 ### 導入
 
-Paradox Mods へは非公開（Hidden）で初回公開済みです（ModId 167225）。ビルドして次のフォルダーへ `CityCheckup.dll` と `CityCheckup.mjs` を置くと読み込まれます。
+Paradox Mods で公開しています（ModId 167225、https://mods.paradoxplaza.com/mods/167225/Windows ）。購読すれば導入できます。自分でビルドする場合は、次のフォルダーへ `CityCheckup.dll` と `CityCheckup.mjs` を置くと読み込まれます（購読と同時に置くと二重に読み込まれるので、どちらか一方にしてください）。
 
 ```text
 %UserProfile%\AppData\LocalLow\Colossal Order\Cities Skylines II\Mods\CityCheckup\
