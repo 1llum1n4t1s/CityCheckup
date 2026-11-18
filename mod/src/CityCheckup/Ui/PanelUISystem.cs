@@ -74,9 +74,10 @@ public sealed partial class PanelUISystem : UISystemBase
         m_DebugReport = DebugMarkers.Has("debug-report");
         m_DebugShotPath = DebugMarkers.PathOf("debug-shot.png");
         var debugMissing = DebugMarkers.Has("debug-missing") || DebugMarkers.Has("debug-delete");
-        AddBinding(new ValueBinding<bool>(Group, "debugOpen", m_DebugReport || debugMissing));
+        var debugDlc = DebugMarkers.Has("debug-dlc-remove");
+        AddBinding(new ValueBinding<bool>(Group, "debugOpen", m_DebugReport || debugMissing || debugDlc));
         // 動作確認で最初に開くタブ。
-        AddBinding(new ValueBinding<string>(Group, "debugTab", debugMissing ? "missing" : "load"));
+        AddBinding(new ValueBinding<string>(Group, "debugTab", debugDlc ? "dlc" : debugMissing ? "missing" : "load"));
         if (m_DebugReport)
         {
             OnSetOpen(true);

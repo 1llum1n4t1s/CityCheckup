@@ -38,7 +38,7 @@ dotnet build mod/src/CityCheckup/CityCheckup.csproj -c Release -p:GameManaged=<C
 
 - コメントは日本語で、目的・設計意図・制約を書く。UI の文言は日本語と英語の両方（`mod/ui/src/i18n.ts`、所見の文は Core の `LoadReport`）で、片方だけ足さない。
 - `Directory.Build.props` で `TreatWarningsAsErrors` と `EnforceCodeStyleInBuild` が有効。警告を残さない。`Version` は `/vava` 経由でだけ更新する。
-- ゲームの処理を変えるシステムは登録しない。分析・表示は読み取り専用で、削除はプレイヤーが UI で選んだときだけ行う。
+- ゲームの処理を変えるシステムは登録しない。分析・表示は読み取り専用で、削除・付け替え（欠落アセットの削除、DLC の参照の取り除き）はプレイヤーが UI で選んだときだけ行う。削除・付け替えは `EndFrameBarrier` のコマンドバッファで行い、UIUpdate の段で `EntityManager` から直接 `Deleted` を付けない。
 - 判定ロジックはゲーム型に依存しない Core に置き、`CityCheckup.Core.Tests` で検証する。ゲーム側のシステムは薄く保つ。
 - C# の UI バインディング名（`PanelUISystem.Group` = `cityCheckup` 配下）と `mod/ui/src` は対で、名前を変えるときは両方を直す。
 - 重い集計は UI を開いている間、または「探す」操作の間だけ動かす。`UISystemBase` は読み込み画面中も動くため、`OnGameLoadingComplete` 後に処理を始める。
@@ -49,7 +49,7 @@ dotnet build mod/src/CityCheckup/CityCheckup.csproj -c Release -p:GameManaged=<C
 
 ## 動作確認
 
-- ゲーム内の確認は、`Mods\CityCheckup\` に置く目印ファイル（`debug-report`、`debug-missing`、`debug-delete`、`debug-speed3`、英語表示に固定する `debug-lang-en`。`mod/src/CityCheckup/DebugMarkers.cs`）で UI 操作を代替し、`Player.log` と画面保存で結果を見る。通常の利用者環境には置かない。
+- ゲーム内の確認は、`Mods\CityCheckup\` に置く目印ファイル（`debug-report`、`debug-missing`、`debug-delete`、`debug-speed3`、DLC の診断 `debug-dlc`、DLC の取り除き `debug-dlc-remove`、英語表示に固定する `debug-lang-en`。`mod/src/CityCheckup/DebugMarkers.cs`）で UI 操作を代替し、`Player.log` と画面保存で結果を見る。通常の利用者環境には置かない。
 - 実セーブでの削除確認は、自動保存で上書きされる前にゲームを止め、保存一覧の前後を比較する。
 - 確認用に `Mods\CityCheckup\` へ開発版を直接置くと、購読している公開版と二重に読み込まれる。確認の間は購読を無効にし、終わったら直接置きを片付けて購読へ戻す。
 

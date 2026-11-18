@@ -1,5 +1,6 @@
-// 開閉ボタンと、タブで切り替えるパネル本体（「負荷分析」「欠落アセット」）。
+// 開閉ボタンと、タブで切り替えるパネル本体（「負荷分析」「欠落アセット」「DLC」）。
 import { React, api } from "./game";
+import { DlcTab } from "./dlc";
 import { MissingTab } from "./missing";
 import { LoadTab, loadReady } from "./panel";
 import { useTexts } from "./i18n";
@@ -11,12 +12,13 @@ const debugTab$ = api.bindValue<string>(GROUP, "debugTab", "load");
 // ゲームで何かを選択中か（選択中はゲームの情報パネルと重なるので、こちらのパネルを畳む）。
 const hasSelection$ = api.bindValue<boolean>(GROUP, "hasSelection", false);
 
-type Tab = "load" | "missing";
+type Tab = "load" | "missing" | "dlc";
 
 // タブの表示名は言語ごとの文言（i18n.ts）から引く。
 const TABS: { key: Tab; label: (t: ReturnType<typeof useTexts>) => string }[] = [
   { key: "load", label: (t) => t.tabLoad },
   { key: "missing", label: (t) => t.tabMissing },
+  { key: "dlc", label: (t) => t.tabDlc },
 ];
 
 export function Root() {
@@ -32,7 +34,7 @@ export function Root() {
   React.useEffect(() => {
     if (debugOpen) {
       setOpen(true);
-      setTab(debugTab === "missing" ? "missing" : "load");
+      setTab(debugTab === "missing" || debugTab === "dlc" ? debugTab : "load");
     }
   }, [debugOpen, debugTab]);
 
@@ -77,7 +79,7 @@ export function Root() {
               </button>
             ))}
           </div>
-          {tab === "load" ? <LoadTab /> : <MissingTab />}
+          {tab === "load" ? <LoadTab /> : tab === "missing" ? <MissingTab /> : <DlcTab />}
         </div>
       )}
     </div>

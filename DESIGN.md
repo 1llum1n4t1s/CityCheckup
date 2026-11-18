@@ -4,7 +4,7 @@ City Checkup の設計。作業規約とコマンドは [AGENTS.md](AGENTS.md)�
 
 ## 目的
 
-Cities: Skylines II の街が重い原因を見える化し、アンインストールした mod の置き土産を安全に片付ける。
+Cities: Skylines II の街が重い原因を見える化し、アンインストールした mod の置き土産と、外した DLC を要求し続ける原因を安全に片付ける。
 製品の主軸はゲーム内のコード mod（`mod/`）。`.cok` セーブをオフラインで調べて整理する Rust ツール（`src/`）は、mod 以前の成果として残している補助ツール。
 
 ## mod（`mod/`）
@@ -14,22 +14,29 @@ Cities: Skylines II の街が重い原因を見える化し、アンインスト
 | 部品 | 責務 |
 | --- | --- |
 | `Mod`（`IMod`） | システムの登録だけを行う。ゲームの処理は変えない。 |
-| `CityCheckup.Core` | ゲーム型に依存しない判定・集計・JSON 生成。`LoadReport`（所見の判定と JSON）、`JobMarket`（学歴別の求職者と空き職場、地区ごとの失業）、`PathfindSources`（システム名から依頼元の分類と区間の差分）、`SpeedSampler`（速度が設定より遅い理由を、経路探し待ちと 1 フレームの処理時間に分けて集計）、`MissingAssets`（欠落アセットの集約）、`UiLanguage`（ゲームのロケールから日本語／英語を決める）、`JsonText`。 |
+| `CityCheckup.Core` | ゲーム型に依存しない判定・集計・JSON 生成。`LoadReport`（所見の判定と JSON）、`JobMarket`（学歴別の求職者と空き職場、地区ごとの失業）、`PathfindSources`（システム名から依頼元の分類と区間の差分）、`SpeedSampler`（速度が設定より遅い理由を、経路探し待ちと 1 フレームの処理時間に分けて集計）、`MissingAssets`（欠落アセットの集約）、`DlcDiagnostics`（DLC を要求する参照の集計と次の保存での予測）・`DlcRemoval`（処置の表、ブランドの付け替え先の選択、路線の車両指定の書き換え）・`DlcView`（DLC タブの表示単位と JSON）、`UiLanguage`（ゲームのロケールから日本語／英語を決める）、`JsonText`。 |
 | `Analysis/CityScanner` | 市民・世帯・職場をたどって `JobMarket` と世帯の集計を作る（読み取り専用）。 |
 | `Analysis/LoadProbeSystem` | 画面のフレームごとに、ゲーム自身の公開値（`SimulationSystem` の速度・1 フレームの処理時間、`PathfindResultSystem` の結果待ちと `queryStats`）を読む。区間の始めと終わりの `queryStats` の差から、依頼元システムごとの件数・成功数・探索の作業量を出す。 |
 | `Ui/PanelUISystem` | 負荷分析パネルのバインディング（グループ `cityCheckup`）。開いている間だけ集計を動かし、結果を JSON 文字列 1 本で UI へ渡す。表示言語（`locale` バインディング）も毎秒ゲームの言語設定から読んで渡す。 |
 | `Ui/CameraJump` | 「見に行く」でカメラを移す。 |
 | `Missing/MissingAssetSystem` | 欠落プレハブを参照する物を探し、選ばれたものを削除する。 |
-| `mod/ui` | タブ付きパネル（負荷分析／欠落アセット）。文言は `i18n.ts` に日英を持つ。Bun で `CityCheckup.mjs` にビルドし、`GameTopLeft` に登録する。 |
+| `Common/EntityRules` | 物の種類・単独で消してよいか・位置の判定（欠落アセットと DLC で共有）。 |
+| `Dlc/DlcScanner` | 保存時の `PrimaryPrefabReferencesSystem` と同じ条件で参照を照会し（システムが持つ参照のうち公開されているものを含む）、保有 Entity の種類・参照先の欠落・処置で分類して `DlcDiagnostics` に数えさせる（読み取り専用）。付属物の組み直しを頼む相手（最上位の持ち主）の判定も持ち、取り除きと共有する。 |
+| `Dlc/DlcRemovalSystem` | DLC タブのバインディング（`dlc`・`scanDlc`・`jumpDlc`・`removeDlc`）。選ばれたコンテンツの参照を取り除く。 |
+| `Dlc/DlcDiagnosticSystem` | 目印 `debug-dlc` があるときだけ、診断をログに書く（読み取り専用）。 |
+| `mod/ui` | タブ付きパネル（負荷分析／欠落アセット／DLC）。文言は `i18n.ts` に日英を持つ。Bun で `CityCheckup.mjs` にビルドし、`GameTopLeft` に登録する。 |
 
 ### データフロー
 
 1. 負荷分析: パネルを開く → `PanelUISystem` が `LoadProbeSystem` の収集を有効にし、実時間 1 秒ごとに速度を更新、10 秒ごとに `CityScanner` の走査と `LoadProbeSystem` の区間の締め（経路探しの作業量・速度の内訳）を実行 → Core の `LoadReport` が所見つきの JSON にする → UI が `JSON.parse` して表示。
 2. 欠落アセット: 「探す」→ PrefabData が無効化されたプレハブ（読み込み時に見つからなかったもの）を集め、`PrefabRef` で参照する物を数える → 元の名前は `PrefabSystem` の旧 ID から引く → UI が名前ごとに一覧表示 → 選択して削除すると `EndFrameBarrier` で `Deleted` を付ける。
+3. DLC: 「探す」→ `DlcScanner` が保存時と同じ照会で、コンテンツ（`ContentData`）へ `ContentPrerequisiteData` / `ModPrerequisiteData` でつながる prefab への参照を数える → Core がコンテンツ → カテゴリ（処置）にまとめ、次の保存で要求される予測と、取り除いた後も残る予測を出す → 「このコンテンツを取り除く」（2 段階の確認）→ その時点で照会し直し、ブランドの付け替え → 付属物（とその子孫）の削除と最上位の持ち主への `RentersUpdated` → 建物・置き物の削除 → 車両を編成ごと削除 → 企業 prefab が欠落した企業の転出 → 路線の車両指定の書き換え、の順に行う。10 フレーム後に、取り除きの後で新しく持ち主を失った付属物を片付け、さらに 2 フレーム後に探し直す。
 
 ### 不変条件
 
-- 分析・表示は読み取り専用。ゲームの状態を変えるのは、プレイヤーが UI で選んだ欠落アセットの削除だけ。
+- 分析・表示は読み取り専用。ゲームの状態を変えるのは、プレイヤーが UI で選んだときの削除・付け替え（欠落アセットの削除と、DLC の参照の取り除き）だけ。
+- DLC で取り除くのは、参照先の prefab が欠落している（DLC を外して読み込んだ）ものだけ。DLC が有効なままだと、ゲームが車両の選び直し・付属物の組み直し・企業の初期化で同じ prefab を選び直すので、一覧で「無効にして読み込み直す」と案内するだけにする。
+- 削除・付け替えは `EndFrameBarrier` のコマンドバッファで行う（ゲームの情報パネルの「削除」と同じ）。UIUpdate の段で `EntityManager` から直接 `Deleted` を付けると、同じフレームの後片付けで消えて参照が宙に浮く。例外は路線の車両指定で、ゲームの UI と同じくメインスレッドで直接書き換える。
 - 重い処理（全市民の走査、全物体の探索）は、パネルの該当タブを開いている間か明示操作の間だけ動く。
 - 削除可否は、ゲームの情報パネルの「削除」ボタンの条件に合わせる（置き物は持ち主のいない静的な物、建物は付属建物でないもの。成長型の建物は欠落していれば作り直されないので削除可）。道路・線路・エリアはゲームのツールを通す必要があるため、一覧と「見に行く」だけで削除しない。
 - 所見は実測値から言えることだけにする。mod で測っていない値（CPU 使用率など）は推測で書かない。
@@ -45,6 +52,9 @@ Cities: Skylines II の街が重い原因を見える化し、アンインスト
 - **速度低下の原因を実測で 2 つに分ける**: ゲームが速度を落とす理由は「経路探しの結果待ち」と「1 フレームの処理時間が設定速度の間隔を超える」の 2 つで、どちらもゲームの公開値から同じ式で求める。CPU 使用率のような mod で測っていない値は出さない。
 - **選択中はパネルを畳む**: 「見に行く」で選択するとゲームの情報パネルが開き、重なるため。
 - **UI は日本語と英語**: ゲームの言語設定（`activeLocaleId`）が `ja` で始まれば日本語、それ以外はすべて英語。言語は途中で変えられるので毎秒読み直す。所見の文は Core の `LoadReport.Language` で出し分け、UI の文言は `mod/ui/src/i18n.ts` に置く。掲載文（`PublishConfiguration.xml`）は英語と日本語を併記する。
+- **DLC の取り除きはカテゴリごとに処置を変える**: 車両は `VehicleUtils.DeleteVehicle` で編成ごと消し、持ち主・乗客・路線の後始末はゲームの参照整理に任せる。看板などの付属物は消して、最上位の持ち主（直接の持ち主から、`Object`＋`Owner` で建物・施設の拡張・車両・人でない中間の付属物の間は上へたどった先）へ `RentersUpdated` を 1 回だけ送り、ゲームに組み直させる。ゲームは中間の付属物を単独の持ち主として組み直さず（`SubObjectSystem.CheckSubObjectOwnersJob`）、入れ子は最上位の組み直しの中で最上位の文脈のまま深さ順に組み直す（`UpdateSubObjectsJob` の DeepOwners）一方、`RentersUpdated` の受け口は受け取った Entity をたどらずに最上位として組み直す。中間へ送ると、その子が最上位の文脈なしで作り直され、同じフレームに最上位も組み直されると中間ごと消されて新しい子が持ち主を失うおそれがあるため。受け手は `HasBuffer` で守られているので、道路など建物以外の最上位でも安全。ただし最上位の持ち主の prefab が欠落していて消されない（取り除かれない道路、単独で消せない欠落建物など）付属物は一覧だけにする（欠落した持ち主を組み直させると、基本ゲームの付属物まで作り直しの対象になるため）。付属物の子孫（SubObject バッファで `Owner` が親を指す物）も一緒に消す。持ち主の組み直しで子まで消える見込みだが、実機で持ち主の消えた `Owner` が残ったための保険で、ゲームの連鎖と結果は同じ。さらに保険として、取り除きの直前に「持ち主が Null・存在しない静的な付属物」を控え、10 フレーム後に新しく持ち主を失った物（建物・施設の拡張・車両・人・`Temp`・`Deleted` を除く）とその子孫だけを、同じ操作の後始末として `EndFrameBarrier` で `Deleted` にする（件数は `orphansCleaned`）。持ち主に `Deleted` が付いたときのゲームの結果（子を全部消す）と同じで、持ち主の SubObject バッファからの除去は `TryGetBuffer` で守られている。取り除きの前から持ち主の無い物には触らない。企業 prefab そのものが欠落した企業は、ゲームの転出（`CompanyMoveAwaySystem` の `MovingAwayJob`）と同じく、物件に `PropertyToBeOnMarket` と `RentersUpdated` を送って企業に `Deleted` を付ける（`MovingAway` を付けて任せる方法は、約 1024 フレームおきにしか動かず、転出の実行の照会が `ProcessingCompany` と `PropertyRenter` を必須にするので使わない。抽出企業を除いているのは転出の判定側の照会だけで、実行側は除かない）。従業員・通知アイコン・物件の入居者一覧・持っている車両の後始末はゲーム（`RemovedSystem`・`SubElementDeleteSystem`）に任せ、建物は消さない。その企業のブランドの参照も一緒に消えるので、付け替え先が無くても残りに数えない。企業のブランドは企業 prefab の候補から付け替える。候補はまず、どのコンテンツへの前提も持たないブランド（基本ゲーム）から選び、無いときだけ欠落したコンテンツへの前提を持たないブランドから選ぶ（有効な別の DLC のブランドへ付け替えて、新しい要求を作らないため）。選び方は企業ごとの種で決定的にする。候補が無ければ `Entity.Null` にせず残す（名前表示が壊れるため）。道路・エリア・方針・予算・チャープ・建設中の次の prefab・`SubReplacement`・`EditorContainer` は一覧だけ。取り除きが途中で例外になっても、それまでに積んだ変更は反映されるので、途中までの件数と `failed` を UI へ渡して知らせる。
+- **システムが持つ参照も数える（一覧だけ）**: 保存時の印付けは Entity の参照に加えて、システムが持つ参照にも付く（`PrimaryPrefabReferencesSystem.PatchSystemReferences`。1 回目の `CheckPrefabReferencesSystem` より前なので `ContentPrerequisiteData` の伝播にも乗る）。公開されている街のテーマ（`CityConfigurationSystem.defaultTheme`・`loadedDefaultTheme`）、マップが要求するコンテンツ（`requiredContent`。ContentPrefab そのもので、読み込んだセーブかマップエディターが書く）、気候（`ClimateSystem.currentClimate`）、地形と水の描画設定、建物 prefab ごとの輸送の記録（`TransportUsageTrackSystem`）を読み、カテゴリ「街の設定・統計の記録」として予測（今と取り除き後）に入れる。どれも取り除かない。輸送の記録のキーは輸送の実績による解除条件（`TransportRequirementSystem`）が読むので消さない。天気の効果（`ClimateSystem` の `m_CurrentWeatherEffects` など）は非公開で読めないので数えない（今の気候 prefab の既定の天気から選ばれる）。保存時の Secondary の伝播は `ContentPrerequisiteData`・`ModPrerequisiteData` だけを再現し、成長型建物の区画・代替建物・サービス・レーン・路線の prefab 間のつながりはたどらない。
+- **DLC の一覧は保持しない**: 車両は常に増減するので、取り除くときはボタンを押した時点で照会し直す。UI の JSON へは件数・参照先の名前（カテゴリごとに 3 つ）と「見に行く」先の件数だけを渡し、「見に行く」先そのもの（カテゴリごとに最大 200 件）は C# 側の一覧（`DlcRemovalSystem.m_View`）が持つ。
 - **取り残し車両の削除は外した**: 2 本のセーブで該当 0 件で、現行ゲームで修正済みと見られるため（Git の `da84f54` に実装が残る）。
 - **ゲームの更新に弱い箇所**: システム名による分類（2026-11 時点で確認。名前が変わっても `Other` に入るだけで集計は壊れない）、`queryStats`・`SimulationSystem` の公開値、バージョン指定 `GameVersion`（1.6.*）。
 

@@ -10,6 +10,7 @@ const ja = {
   toggleCollapsed: "街の診断（選択中は畳んでいます）",
   tabLoad: "負荷分析",
   tabMissing: "欠落アセット",
+  tabDlc: "DLC",
   // 負荷分析
   findings: "気づいたこと",
   speedHeading: "シミュレーションの速度",
@@ -70,6 +71,65 @@ const ja = {
   deleteNow: "削除する",
   deleteSelected: "選んだ物を削除",
   cancel: "やめる",
+  // DLC
+  dlcHeading: "セーブが必要とする DLC",
+  dlcNote:
+    "次に保存したとき、セーブを開くのに必要になる DLC と、その原因になっている物です。DLC を無効にして街を読み込むと、その DLC の物を取り除けます。",
+  dlcNone: "なし",
+  dlcAllMissing: "欠落している全コンテンツ",
+  dlcPredicted: (names: string) => `次の保存で必要: ${names}`,
+  dlcRemoving: "取り除いています。一覧を更新しています…",
+  dlcDone: (content: string, deleted: number, rebranded: number, movedAway: number, routes: number, skipped: number, orphans: number) =>
+    `${content}: ${fmt(deleted)} 個を削除、${fmt(rebranded)} 社のブランドを付け替え、${fmt(movedAway)} 社を転出させ、${fmt(routes)} 路線の車両指定を外しました。` +
+    (orphans > 0 ? `持ち主を失って残った付属物 ${fmt(orphans)} 個も片付けました。` : "") +
+    (skipped > 0 ? `取り除けなかった物: ${fmt(skipped)} 件。` : ""),
+  dlcFailed: "途中で失敗しました（ここまでの変更は反映されます）。",
+  dlcAdvanceBeforeSave: "後片付けはゲームの時間が進むと行われます。少し時間を進めてから保存してください。",
+  dlcStatus: {
+    missing: "DLC は外れています。取り除けます。",
+    loaded: "DLC が有効です。DLC を無効にして読み込み直すと取り除けます。",
+    mixed: "一部は DLC が有効です。外れている分だけ取り除けます。",
+  } as Record<string, string>,
+  dlcRemainsAfter: "取り除いても、ここで取り除けない物が残るため、次の保存でまだ必要です。",
+  dlcClearsAfter: "取り除くと、次の保存では必要なくなる見込みです。",
+  dlcKinds: {
+    vehicle: "車両",
+    brand: "企業のブランド",
+    subObject: "看板などの付属物",
+    routeModel: "路線の車両指定",
+    building: "建物・置き物",
+    netArea: "道路・エリア（見に行くだけ）",
+    company: "企業",
+    system: "街の設定・統計の記録",
+    other: "その他（未対応）",
+  } as Record<string, string>,
+  dlcCategoryLine: (kind: string, count: number) => `${kind}・${fmt(count)} 件`,
+  dlcActions: {
+    delete: "削除します",
+    rebrand: "別のブランドに付け替えます",
+    clearModel: "車両指定から外します",
+    rebuildDelete: "削除して、持ち主に組み直させます",
+    listOnly: "ここでは取り除けません",
+    needsDlcDisabled: "DLC を無効にして読み込み直すと取り除けます",
+    noCandidate: "付け替え先のブランドがありません",
+    moveAway: "企業を転出させます（建物は空き物件になり、別の企業が入ります）",
+  } as Record<string, string>,
+  dlcRemove: "このコンテンツを取り除く",
+  dlcRemoveNow: "取り除く",
+  dlcConfirm: (deleting: number, rebranding: number, companies: number, blocked: number) =>
+    `${fmt(deleting)} 件を取り除き、${fmt(rebranding)} 社のブランドを付け替えます。` +
+    (companies > 0 ? `${fmt(companies)} 社を転出させます（従業員は職を失い、建物は空き物件になります）。` : "") +
+    `元に戻せません（戻すには保存せずに読み込み直してください）。` +
+    `車を消された世帯は、あとで別の車を持ちます。先に別名で保存しておくことをお勧めします。` +
+    (blocked > 0 ? `ここで取り除けない ${fmt(blocked)} 件は残ります。` : ""),
+  // コンテンツの表示名（ContentPrefab の名前 → 表示名）。無ければ元の名前を出す。
+  contentNames: {
+    BridgesAndPorts: "Bridges & Ports",
+    SanFranciscoSet: "San Francisco Set",
+    CS1TreasureHunt: "CS1 Treasure Hunt（特典）",
+    LandmarkBuildings: "ランドマーク建物",
+    Newsletter: "ニュースレター特典",
+  } as Record<string, string>,
 };
 
 type Texts = typeof ja;
@@ -79,6 +139,7 @@ const en: Texts = {
   toggleCollapsed: "City Checkup (hidden while something is selected)",
   tabLoad: "Load analysis",
   tabMissing: "Missing assets",
+  tabDlc: "DLC",
   findings: "Findings",
   speedHeading: "Simulation speed",
   selectedSpeed: "Selected speed",
@@ -138,6 +199,63 @@ const en: Texts = {
   deleteNow: "Delete",
   deleteSelected: "Delete selected",
   cancel: "Cancel",
+  dlcHeading: "DLC this save needs",
+  dlcNote:
+    "The DLC that will be needed to open the save after the next save, and what causes it. Load the city with the DLC disabled to remove that DLC's items.",
+  dlcNone: "none",
+  dlcAllMissing: "All missing content",
+  dlcPredicted: (names) => `Needed after the next save: ${names}`,
+  dlcRemoving: "Removing. Updating the list…",
+  dlcDone: (content, deleted, rebranded, movedAway, routes, skipped, orphans) =>
+    `${content}: deleted ${fmt(deleted)}, rebranded ${fmt(rebranded)} companies, moved away ${fmt(movedAway)} companies, cleared vehicle choices on ${fmt(routes)} lines.` +
+    (orphans > 0 ? ` Also cleaned up ${fmt(orphans)} attachments left without an owner.` : "") +
+    (skipped > 0 ? ` Could not remove: ${fmt(skipped)}.` : ""),
+  dlcFailed: "Removal stopped partway (the changes made so far still apply).",
+  dlcAdvanceBeforeSave: "Cleanup happens as game time passes. Let the game run for a moment before saving.",
+  dlcStatus: {
+    missing: "The DLC is not loaded. These can be removed.",
+    loaded: "The DLC is enabled. Disable it and load the city again to remove these.",
+    mixed: "Part of the DLC is enabled. Only the missing part can be removed.",
+  },
+  dlcRemainsAfter: "Some items cannot be removed here, so the next save will still need it.",
+  dlcClearsAfter: "After removal, the next save should no longer need it.",
+  dlcKinds: {
+    vehicle: "Vehicles",
+    brand: "Company brands",
+    subObject: "Signs and other attachments",
+    routeModel: "Line vehicle choices",
+    building: "Buildings and objects",
+    netArea: "Roads and areas (view only)",
+    company: "Companies",
+    system: "City settings and statistics records",
+    other: "Other (not supported)",
+  },
+  dlcCategoryLine: (kind, count) => `${kind}: ${fmt(count)}`,
+  dlcActions: {
+    delete: "Will be deleted",
+    rebrand: "Will be switched to another brand",
+    clearModel: "Will be removed from the vehicle choice",
+    rebuildDelete: "Will be deleted and rebuilt by the owner",
+    listOnly: "Cannot be removed here",
+    needsDlcDisabled: "Disable the DLC and load again to remove",
+    noCandidate: "No other brand to switch to",
+    moveAway: "The company will move away (the building becomes vacant for another company)",
+  },
+  dlcRemove: "Remove this content",
+  dlcRemoveNow: "Remove",
+  dlcConfirm: (deleting, rebranding, companies, blocked) =>
+    `Remove ${fmt(deleting)} items and switch the brand of ${fmt(rebranding)} companies. ` +
+    (companies > 0 ? `${fmt(companies)} companies will move away (their workers lose their jobs and the buildings become vacant). ` : "") +
+    `This cannot be undone (load again without saving to undo). ` +
+    `Households that lose a car will get another one later. Saving under a new name first is recommended.` +
+    (blocked > 0 ? ` ${fmt(blocked)} items that cannot be removed here will stay.` : ""),
+  contentNames: {
+    BridgesAndPorts: "Bridges & Ports",
+    SanFranciscoSet: "San Francisco Set",
+    CS1TreasureHunt: "CS1 Treasure Hunt (bonus)",
+    LandmarkBuildings: "Landmark Buildings",
+    Newsletter: "Newsletter bonus",
+  },
 };
 
 /** 今の表示言語の文言を返す。 */

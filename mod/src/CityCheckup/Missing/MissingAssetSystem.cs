@@ -5,7 +5,6 @@ using Colossal.Serialization.Entities;
 using Colossal.UI.Binding;
 using Game;
 using Game.Areas;
-using Game.Buildings;
 using Game.Common;
 using Game.Net;
 using Game.Prefabs;
@@ -13,13 +12,12 @@ using Game.Rendering;
 using Game.Tools;
 using Game.UI;
 using Game.UI.InGame;
+using CityCheckup.Common;
 using CityCheckup.Core;
 using CityCheckup.Ui;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Mathematics;
 using Debug = UnityEngine.Debug;
-using Transform = Game.Objects.Transform;
 
 namespace CityCheckup.Missing;
 
@@ -193,9 +191,9 @@ public sealed partial class MissingAssetSystem : UISystemBase
                         continue;
                     }
                 }
-                var kind = KindOf(em, entity);
-                var p = PositionOf(em, entity);
-                result.Add(id.Type, id.Name, kind, new MissingInstance(entity.Index, entity.Version, p.x, p.y, p.z, IsDeletable(em, entity, kind)));
+                var kind = EntityRules.KindOf(em, entity);
+                var p = EntityRules.PositionOf(em, entity);
+                result.Add(id.Type, id.Name, kind, new MissingInstance(entity.Index, entity.Version, p.x, p.y, p.z, EntityRules.IsDeletable(em, entity, kind)));
             }
         }
 
@@ -257,61 +255,6 @@ public sealed partial class MissingAssetSystem : UISystemBase
         // PrefabID.ToString() は「型:名前 (ハッシュ)」の形。型の部分だけ取り出す。
         var colon = id.IndexOf(':');
         return colon > 0 ? id.Substring(0, colon) : id;
-    }
-
-    private static MissingKind KindOf(EntityManager em, Entity e)
-    {
-        if (em.HasComponent<Building>(e))
-        {
-            return MissingKind.Building;
-        }
-        if (em.HasComponent<Game.Objects.Object>(e))
-        {
-            return MissingKind.Object;
-        }
-        return em.HasComponent<Edge>(e) ? MissingKind.Net : MissingKind.Area;
-    }
-
-    /// <summary>ゲームの情報パネルの「削除」ボタンが使える条件に合わせた判定（成長型の建物だけ緩めている）。</summary>
-    private static bool IsDeletable(EntityManager em, Entity e, MissingKind kind)
-    {
-        if (em.HasComponent<Game.Objects.OutsideConnection>(e))
-        {
-            return false;
-        }
-        switch (kind)
-        {
-            case MissingKind.Building:
-                if (em.HasComponent<Game.Buildings.WaterPowered>(e))
-                {
-                    return false;
-                }
-                // 付属建物は本体ごとでないと消せない。ただし施設の拡張（ServiceUpgrade）は単独で消せる。
-                return !em.HasComponent<Owner>(e) || em.HasComponent<Game.Buildings.ServiceUpgrade>(e);
-            case MissingKind.Object:
-                return em.HasComponent<Game.Objects.Static>(e) && !em.HasComponent<Native>(e) && !em.HasComponent<Owner>(e);
-            default:
-                return false;
-        }
-    }
-
-    private static float3 PositionOf(EntityManager em, Entity e)
-    {
-        if (em.HasComponent<Transform>(e))
-        {
-            return em.GetComponentData<Transform>(e).m_Position;
-        }
-        if (em.HasComponent<Curve>(e))
-        {
-            // 区間の曲線の中ほど（ベジェ曲線の t=0.5）。
-            var b = em.GetComponentData<Curve>(e).m_Bezier;
-            return (b.a + 3f * b.b + 3f * b.c + b.d) / 8f;
-        }
-        if (em.HasComponent<Geometry>(e))
-        {
-            return em.GetComponentData<Geometry>(e).m_CenterPosition;
-        }
-        return float3.zero;
     }
 
     /// <summary>動作確認用（DebugMarkers の debug-missing / debug-delete）の自動操作。</summary>
