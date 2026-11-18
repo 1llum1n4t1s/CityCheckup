@@ -85,6 +85,13 @@ const ja = {
     (skipped > 0 ? `取り除けなかった物: ${fmt(skipped)} 件。` : ""),
   dlcFailed: "途中で失敗しました（ここまでの変更は反映されます）。",
   dlcAdvanceBeforeSave: "後片付けはゲームの時間が進むと行われます。少し時間を進めてから保存してください。",
+  usedModsHeading: "MOD 使用の記録",
+  usedModsNote:
+    "セーブには「MOD を使用しています」という印が付きます。消えるのは次の保存の印だけで、mod を有効にしたまま読み込み直すと、また付きます。mod の建物などをまだ使っているなら、その中身は残るので、先に「欠落アセット」や DLC の一覧で片付けてください。",
+  usedModsNone: "記録されている mod はありません。",
+  usedModsList: (count: number, names: string, more: number) => `${fmt(count)} 件: ${names}` + (more > 0 ? ` ほか ${fmt(more)} 件` : ""),
+  usedModsClear: "記録を消す",
+  usedModsCleared: (count: number) => `${fmt(count)} 件の記録を消しました。別名で保存してください。`,
   dlcStatus: {
     missing: "DLC は外れています。取り除けます。",
     loaded: "DLC が有効です。DLC を無効にして読み込み直すと取り除けます。",
@@ -212,6 +219,13 @@ const en: Texts = {
     (skipped > 0 ? ` Could not remove: ${fmt(skipped)}.` : ""),
   dlcFailed: "Removal stopped partway (the changes made so far still apply).",
   dlcAdvanceBeforeSave: "Cleanup happens as game time passes. Let the game run for a moment before saving.",
+  usedModsHeading: "Mod usage record",
+  usedModsNote:
+    "Saves carry a \"uses mods\" mark. Only the mark of the next save is removed; it comes back if you load the city again with the mods enabled. Items from a mod stay in the city, so clean them up first with the Missing assets tab or the DLC list.",
+  usedModsNone: "No mods are recorded.",
+  usedModsList: (count, names, more) => `${fmt(count)}: ${names}` + (more > 0 ? ` and ${fmt(more)} more` : ""),
+  usedModsClear: "Clear the record",
+  usedModsCleared: (count) => `Cleared ${fmt(count)} records. Save under a new name.`,
   dlcStatus: {
     missing: "The DLC is not loaded. These can be removed.",
     loaded: "The DLC is enabled. Disable it and load the city again to remove these.",

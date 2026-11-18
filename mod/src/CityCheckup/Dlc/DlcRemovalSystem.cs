@@ -7,6 +7,7 @@ using Colossal.Serialization.Entities;
 using Colossal.UI.Binding;
 using Game;
 using Game.Buildings;
+using Game.City;
 using Game.Common;
 using Game.Companies;
 using Game.Prefabs;
@@ -68,6 +69,15 @@ public sealed partial class DlcRemovalSystem : UISystemBase
     private EndFrameBarrier m_EndFrameBarrier = null!;
     private EntityArchetype m_RentersUpdatedArchetype;
     private ValueBinding<string> m_Binding = null!;
+
+    // 「MOD 使用の記録」（CityConfigurationSystem.usedMods）。消した後の案内のため、消したことと件数を控える。
+    private CityConfigurationSystem m_CityConfiguration = null!;
+    private ValueBinding<string> m_UsedModsBinding = null!;
+    private bool m_UsedModsCleared;
+    private int m_UsedModsClearedCount;
+
+    // 動作確認用（debug-clear-mods）。読み込み完了から少し待って、記録をログに出して消す。0 なら予定なし。
+    private float m_DebugClearModsAt;
 
     private IReadOnlyList<DlcContentView> m_View = Array.Empty<DlcContentView>();
     private IReadOnlyList<string> m_Predicted = Array.Empty<string>();
@@ -134,6 +144,33 @@ public sealed partial class DlcRemovalSystem : UISystemBase
         AddBinding(new TriggerBinding(Group, "scanDlc", Scan));
         AddBinding(new TriggerBinding<string, int>(Group, "jumpDlc", OnJump));
         AddBinding(new TriggerBinding<string>(Group, "removeDlc", OnRemove));
+
+        m_CityConfiguration = World.GetOrCreateSystemManaged<CityConfigurationSystem>();
+        m_UsedModsBinding = new ValueBinding<string>(Group, "usedMods", UsedModsJson());
+        AddBinding(m_UsedModsBinding);
+        AddBinding(new TriggerBinding(Group, "clearUsedMods", ClearUsedMods));
+    }
+
+    private string UsedModsJson() => UsedModsView.ToJson(m_CityConfiguration.usedMods, m_UsedModsCleared, m_UsedModsClearedCount);
+
+    /// <summary>
+    /// 「MOD 使用の記録」を消す（プレイヤーがボタンを押したときだけ）。ゲームは読み込みの最後にこの集合へ有効な mod の名前を足し、
+    /// 保存で書き出す（SaveInfo の modsEnabled と実績の有効判定も見ている）。ECS の Entity ではないので、コマンドバッファは使わず直接消す。
+    /// </summary>
+    /// <remarks>消えるのは次の保存の印だけ。mod を有効にしたまま読み込み直すと、また足される。</remarks>
+    private void ClearUsedMods()
+    {
+        if (!m_InGame)
+        {
+            return;
+        }
+        var set = m_CityConfiguration.usedMods;
+        var count = set.Count;
+        set.Clear();
+        m_UsedModsCleared = true;
+        m_UsedModsClearedCount += count;
+        m_UsedModsBinding.Update(UsedModsJson());
+        Debug.Log($"{Mod.LogPrefix} used mods cleared: {count} entries");
     }
 
     protected override void OnGamePreload(Purpose purpose, GameMode mode)
@@ -150,8 +187,13 @@ public sealed partial class DlcRemovalSystem : UISystemBase
         m_OrphansBefore = null;
         m_DebugEnabled = false;
         m_Removed.Clear();
+        m_UsedModsCleared = false;
+        m_UsedModsClearedCount = 0;
+        m_DebugClearModsAt = 0f;
         StopListening();
         m_Binding.Update(Json());
+        // 新しい街の記録は読み込みの最後（PostDeserialize）に作られる。ここでは消した印だけ戻して表示を更新し、読み込み完了で読み直す。
+        m_UsedModsBinding.Update(UsedModsJson());
     }
 
     protected override void OnGameLoadingComplete(Purpose purpose, GameMode mode)
@@ -162,6 +204,9 @@ public sealed partial class DlcRemovalSystem : UISystemBase
         m_DebugStep = 0;
         // 診断（debug-dlc、読み込み完了の 5 秒後）の後に動かす。
         m_DebugAt = UnityEngine.Time.realtimeSinceStartup + 15f;
+        // 記録は読み込みの最後（PostDeserialize）で足されるので、読み込み完了の後に読み直す。
+        m_UsedModsBinding.Update(UsedModsJson());
+        m_DebugClearModsAt = m_InGame && DebugMarkers.Has("debug-clear-mods") ? UnityEngine.Time.realtimeSinceStartup + 8f : 0f;
     }
 
     protected override void OnDestroy()
@@ -200,6 +245,20 @@ public sealed partial class DlcRemovalSystem : UISystemBase
             }
         }
         RunDebug();
+        RunDebugClearMods();
+    }
+
+    /// <summary>動作確認用（debug-clear-mods）: 記録の内容をログに出し、消して、消した後の件数もログに出す（1 回だけ）。</summary>
+    private void RunDebugClearMods()
+    {
+        if (m_DebugClearModsAt <= 0f || UnityEngine.Time.realtimeSinceStartup < m_DebugClearModsAt)
+        {
+            return;
+        }
+        m_DebugClearModsAt = 0f;
+        Debug.Log($"{Mod.LogPrefix} used mods before: {UsedModsView.Describe(m_CityConfiguration.usedMods)}");
+        ClearUsedMods();
+        Debug.Log($"{Mod.LogPrefix} used mods after: {UsedModsView.Describe(m_CityConfiguration.usedMods)} json={UsedModsJson()}");
     }
 
     private string Json() => DlcView.ToJson(m_State, m_View, m_Predicted, m_PredictedAfter, m_Last);

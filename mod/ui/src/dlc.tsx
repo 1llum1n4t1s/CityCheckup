@@ -1,10 +1,30 @@
 // 「DLC」タブ。C# 側 DlcRemovalSystem の "dlc"（Core の DlcView.ToJson の JSON 文字列）を表示し、
 // 探す・見に行く・コンテンツを取り除くを C# 側のトリガー（scanDlc / jumpDlc / removeDlc）へ送る。
+// 末尾の「MOD 使用の記録」は別の値 "usedMods"（Core の UsedModsView.ToJson）を表示し、clearUsedMods で記録を消す。
 import { React, api } from "./game";
 import { useTexts } from "./i18n";
 import { GROUP, colors, fmt, s } from "./style";
 
 const dlc$ = api.bindValue<string>(GROUP, "dlc", "{}");
+
+// 「MOD 使用の記録」（C# 側 Core の UsedModsView.ToJson）。
+const usedMods$ = api.bindValue<string>(GROUP, "usedMods", "{}");
+
+interface UsedModsReport {
+  count?: number;
+  names?: string[];
+  more?: number;
+  cleared?: boolean;
+  clearedCount?: number;
+}
+
+function parseUsedMods(text: string): UsedModsReport {
+  try {
+    return JSON.parse(text) as UsedModsReport;
+  } catch {
+    return {};
+  }
+}
 
 export type DlcAction = "delete" | "rebrand" | "clearModel" | "rebuildDelete" | "listOnly" | "needsDlcDisabled" | "noCandidate" | "moveAway";
 
@@ -62,6 +82,9 @@ export function DlcTab() {
   const t = useTexts();
   const text = api.useValue(dlc$);
   const report = React.useMemo(() => parse(text), [text]);
+  const usedText = api.useValue(usedMods$);
+  const used = React.useMemo(() => parseUsedMods(usedText), [usedText]);
+  const usedCount = used.count ?? 0;
   const contents = report.contents ?? [];
   const predicted = report.predicted ?? [];
   // 「見に行く」で次に見る順番（カテゴリの key ごと）。
@@ -169,6 +192,25 @@ export function DlcTab() {
           </div>
         );
       })}
+
+      <div style={s.section}>
+        <div style={s.heading}>{t.usedModsHeading}</div>
+        <div style={s.sub}>{t.usedModsNote}</div>
+        {used.cleared ? (
+          <div style={{ marginTop: "6rem", color: colors.warn }}>{t.usedModsCleared(used.clearedCount ?? 0)}</div>
+        ) : (
+          <div style={{ marginTop: "6rem" }}>
+            {usedCount === 0 ? t.usedModsNone : t.usedModsList(usedCount, (used.names ?? []).join(", "), used.more ?? 0)}
+          </div>
+        )}
+        {!used.cleared && usedCount > 0 && (
+          <div style={{ ...s.row, justifyContent: "flex-start", marginTop: "6rem" }}>
+            <button style={s.smallButton} onClick={() => api.trigger(GROUP, "clearUsedMods")}>
+              {t.usedModsClear}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
