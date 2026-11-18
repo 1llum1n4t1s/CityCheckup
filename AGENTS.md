@@ -78,4 +78,4 @@ Rust ツール（`Cargo.toml` の `cok-inspector`）は配布しておらず、�
 - **deploy**: なし（`DEPLOY_REQUIREMENT=not-applicable`）。Paradox Mods への公開そのものが配布。
 - **署名・CI**: なし。ローカルのスクリプトだけで公開する。依存の更新は `.github/dependabot.yml`（cargo・nuget はテストのみ・bun、週次で minor/patch をまとめる）が PR にする。
 - **告知**: Paradox Mods 上で一般公開になっている版が、公開後の X 告知の対象になる。1.0.0 はログインなしでページを開ける状態で、本人の了承のもと公開範囲を変えずに X で告知した（@KagayoiJP）。公開範囲が変わった場合は本人に確認する。
-- **既知の経緯**: 0.1.0 は 2026-11-12 に release branch を作らずに公開した（公開時のコミットは `2692b58`）。1.0.0 以降は `release/<版>` branch を作る（`release/1.0.0` がある）。
+- **既知の経緯**: 0.1.0 は 2026-11-12 に release branch を作らずに公開した（公開時のコミットは `2692b58`）。1.0.0 以降は版ごとに `release/<版>` branch を作る。
