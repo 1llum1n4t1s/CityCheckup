@@ -1,9 +1,9 @@
 //! 満車・経路失敗・遠い車庫からの戻りを確かめる試験コピーの作成と照合を行うCLI。
 //! ゲーム付属の PipelinePlugin.dll を、圧縮済みの車庫形状の展開に使う。
 use cok_inspector::save_data::{
-    citizen_categories, compare_creatures, count_entities, job_market, path_demand, inspect_people_trial, inspect_vehicle_trial,
-    moving_away_report, probe_components, rekey_manifest, save_sizes, write_people_trial,
-    write_vehicle_trial,
+    citizen_categories, compare_creatures, count_entities, inspect_people_trial,
+    inspect_vehicle_trial, job_market, moving_away_report, path_demand, probe_components,
+    rekey_manifest, save_sizes, write_people_trial, write_vehicle_trial,
 };
 use std::ffi::OsString;
 use std::path::Path;

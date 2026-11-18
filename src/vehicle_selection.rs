@@ -24,13 +24,15 @@ pub fn dummy_traffic_candidates(
     };
     let mut candidates = Vec::new();
     for (index, (vehicle, owner)) in transport
-        .chunks_exact(20)
-        .zip(owners.chunks_exact(4))
+        .as_chunks::<20>()
+        .0
+        .iter()
+        .zip(owners.as_chunks::<4>().0)
         .enumerate()
     {
         let request = i32::from_le_bytes(vehicle[..4].try_into().unwrap());
         let state = u32::from_le_bytes(vehicle[4..8].try_into().unwrap());
-        let owner = i32::from_le_bytes(owner.try_into().unwrap());
+        let owner = i32::from_le_bytes(*owner);
         // 稼働中のリクエストを持つ車両は、フラグがあっても保持する。
         if request == -1
             && state & dummy_traffic != 0

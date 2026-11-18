@@ -4,7 +4,8 @@ mod clean;
 mod garage_trial;
 mod vehicle_trial;
 pub use vehicle_trial::{
-    citizen_categories, compare_creatures, count_entities, job_market, path_demand, moving_away_report, inspect_people_trial, inspect_vehicle_trial, probe_components,
+    citizen_categories, compare_creatures, count_entities, inspect_people_trial,
+    inspect_vehicle_trial, job_market, moving_away_report, path_demand, probe_components,
     rekey_manifest, save_sizes, write_people_trial, write_vehicle_trial,
 };
 mod position;

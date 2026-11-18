@@ -38,7 +38,7 @@ fn capture_covers_every_known_beartris_vehicle_reference() {
             let offset = frame.len() - rest.len() + 4;
             let block = sized_bytes(&mut rest).unwrap();
             if types[id].reference == Some(0) {
-                for (index, vehicle) in block.chunks_exact(8).enumerate() {
+                for (index, vehicle) in block.as_chunks::<8>().0.iter().enumerate() {
                     let id = i32::from_le_bytes(vehicle[..4].try_into().unwrap());
                     let item = CapturedReference {
                         frame: key,
@@ -188,14 +188,19 @@ fn verified_layouts_remap_real_beartris_references() {
             let output = remap
                 .rewrite(block, layout)
                 .unwrap_or_else(|error| panic!("{}: {error}", component_names[id]));
-            for (before, after) in block.chunks_exact(4).zip(output.chunks_exact(4)) {
+            for (before, after) in block
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .zip(output.as_chunks::<4>().0)
+            {
                 if before != after {
-                    if component_names[id] == "Game.Citizens.CurrentTransport" && after == [255; 4]
+                    if component_names[id] == "Game.Citizens.CurrentTransport" && *after == [255; 4]
                     {
                         cleared_transports += 1;
                     }
                     if component_names[id] == "Game.Citizens.HouseholdMember" {
-                        assert_ne!(after, [255; 4]);
+                        assert_ne!(*after, [255; 4]);
                         changed_members += 1;
                     }
                 }

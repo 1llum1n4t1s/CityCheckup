@@ -206,7 +206,7 @@ fn number(value: u64) -> String {
     let first = (text.len() - 1) % 3 + 1;
     let (head, tail) = text.split_at(first);
     let mut result = head.to_owned();
-    for group in tail.as_bytes().chunks_exact(3) {
+    for group in tail.as_bytes().as_chunks::<3>().0 {
         result.push(',');
         result.push_str(std::str::from_utf8(group).unwrap());
     }

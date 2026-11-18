@@ -1191,7 +1191,11 @@ pub fn save_sizes(input: &Path) -> Result<String, String> {
         let mut cursor = frame.as_slice();
         let mut sizes = Vec::new();
         for &id in &row.types {
-            let len = if types[id].flag == 1 { 0 } else { sized_bytes(&mut cursor)?.len() };
+            let len = if types[id].flag == 1 {
+                0
+            } else {
+                sized_bytes(&mut cursor)?.len()
+            };
             sizes.push((id, len as u64));
         }
         let sum = sizes.iter().map(|s| s.1).sum::<u64>().max(1);
@@ -1229,7 +1233,13 @@ pub fn save_sizes(input: &Path) -> Result<String, String> {
     }
     let rest = data.len() - reader.stream_position().map_err(|e| e.to_string())? as usize;
     frames.sort_by_key(|f| std::cmp::Reverse(f.2));
-    writeln!(out, "後ろの領域のフレーム {} 個（解釈できない残り {} バイト）。圧縮サイズ上位:", frames.len(), rest).unwrap();
+    writeln!(
+        out,
+        "後ろの領域のフレーム {} 個（解釈できない残り {} バイト）。圧縮サイズ上位:",
+        frames.len(),
+        rest
+    )
+    .unwrap();
     for (i, raw, packed) in frames.iter().take(15) {
         writeln!(out, "  #{i:<5} 圧縮{packed:>11} 展開{raw:>11}").unwrap();
     }
@@ -1237,7 +1247,12 @@ pub fn save_sizes(input: &Path) -> Result<String, String> {
     list.sort_by(|a, b| b.1.2.total_cmp(&a.1.2));
     writeln!(out, "\n== 実体データの型別（圧縮サイズは按分の近似）上位40").unwrap();
     for (id, (count, raw, packed)) in list.iter().take(40) {
-        writeln!(out, "{:>11.0} 圧縮 {raw:>11} 展開 {count:>8}実体  {}", packed, types[*id].name).unwrap();
+        writeln!(
+            out,
+            "{:>11.0} 圧縮 {raw:>11} 展開 {count:>8}実体  {}",
+            packed, types[*id].name
+        )
+        .unwrap();
     }
     Ok(out)
 }
@@ -1265,7 +1280,9 @@ pub fn moving_away_report(input: &Path) -> Result<String, String> {
             for i in 0..row.count {
                 let h = row.start + i;
                 households.insert(h, [0; 4]);
-                *reasons.entry(w.u32_of(h, moving, 4).unwrap_or(u32::MAX)).or_default() += 1;
+                *reasons
+                    .entry(w.u32_of(h, moving, 4).unwrap_or(u32::MAX))
+                    .or_default() += 1;
                 with_home += u64::from(w.has(h, renter));
             }
         }
@@ -1280,7 +1297,9 @@ pub fn moving_away_report(input: &Path) -> Result<String, String> {
             let Some(slot) = households.get_mut(&w.u32_of(c, member, 0).unwrap()) else {
                 continue;
             };
-            let state = w.fixed(c, citizen).map_or(0, |b| u16::from_le_bytes([b[0], b[1]]));
+            let state = w
+                .fixed(c, citizen)
+                .map_or(0, |b| u16::from_le_bytes([b[0], b[1]]));
             let index = if state & 4 != 0 {
                 0
             } else if row.types.contains(&transport) {
@@ -1308,7 +1327,10 @@ pub fn moving_away_report(input: &Path) -> Result<String, String> {
         sum(3)
     )
     .unwrap();
-    let empty = households.values().filter(|s| s.iter().sum::<u32>() == 0).count();
+    let empty = households
+        .values()
+        .filter(|s| s.iter().sum::<u32>() == 0)
+        .count();
     let partly = households
         .values()
         .filter(|s| s[0] > 0 && s[1] + s[2] + s[3] > 0)
@@ -1353,7 +1375,9 @@ pub fn citizen_categories(input: &Path) -> Result<String, String> {
         let jobless_row = !has(worker) && !has(student) && !has(health);
         for i in 0..row.count {
             let c = row.start + i;
-            let state = w.fixed(c, citizen).map_or(0, |b| u16::from_le_bytes([b[0], b[1]]));
+            let state = w
+                .fixed(c, citizen)
+                .map_or(0, |b| u16::from_le_bytes([b[0], b[1]]));
             // 年齢 = 2*AgeBit1 + AgeBit2（0:子ども 1:10代 2:大人 3:高齢者）。子どもと高齢者は仕事を探さない。
             let age = 2 * (state & 1) + ((state >> 1) & 1);
             let seeker = jobless_row && (age == 1 || age == 2);
@@ -1380,7 +1404,11 @@ pub fn citizen_categories(input: &Path) -> Result<String, String> {
     list.sort_by_key(|e| std::cmp::Reverse(e.1.0));
     let mut out = String::new();
     for (kind, (n, t, s)) in list {
-        writeln!(out, "{n:>9} 人（うち移動中 {t:>7}、失業中の求職対象 {s:>7}） {kind}").unwrap();
+        writeln!(
+            out,
+            "{n:>9} 人（うち移動中 {t:>7}、失業中の求職対象 {s:>7}） {kind}"
+        )
+        .unwrap();
     }
     Ok(out)
 }
@@ -1418,9 +1446,15 @@ pub fn job_market(input: &Path) -> Result<String, String> {
         }
         let has = |t: Option<usize>| t.is_some_and(|t| row.types.contains(&t));
         for i in 0..row.count {
-            let state = w.fixed(row.start + i, citizen).map_or(0, |b| u16::from_le_bytes([b[0], b[1]]));
+            let state = w
+                .fixed(row.start + i, citizen)
+                .map_or(0, |b| u16::from_le_bytes([b[0], b[1]]));
             let age = 2 * (state & 1) + ((state >> 1) & 1);
-            let edu = if state & 0x40 != 0 { 4 } else { (if state & 0x10 != 0 { 2 } else { 0 }) + usize::from(state & 0x20 != 0) };
+            let edu = if state & 0x40 != 0 {
+                4
+            } else {
+                (if state & 0x10 != 0 { 2 } else { 0 }) + usize::from(state & 0x20 != 0)
+            };
             if has(worker) {
                 workers[edu] += 1;
             } else if !has(student) && !has(health) && (age == 1 || age == 2) {
@@ -1437,7 +1471,10 @@ pub fn job_market(input: &Path) -> Result<String, String> {
             .u32_of(e, renter, 0)
             .and_then(|b| w.position(b, transform))
             .or_else(|| w.position(e, transform))?;
-        Some(((p[0] / 2000.0).floor() as i32, (p[2] / 2000.0).floor() as i32))
+        Some((
+            (p[0] / 2000.0).floor() as i32,
+            (p[2] / 2000.0).floor() as i32,
+        ))
     };
     let mut grid: HashMap<(i32, i32), (u64, u64)> = HashMap::new();
     for row in w.rows.iter().filter(|r| r.types.contains(&free)) {
@@ -1458,7 +1495,9 @@ pub fn job_market(input: &Path) -> Result<String, String> {
         }
         for i in 0..row.count {
             let c = row.start + i;
-            let state = w.fixed(c, citizen).map_or(0, |b| u16::from_le_bytes([b[0], b[1]]));
+            let state = w
+                .fixed(c, citizen)
+                .map_or(0, |b| u16::from_le_bytes([b[0], b[1]]));
             let age = 2 * (state & 1) + ((state >> 1) & 1);
             if (age == 1 || age == 2)
                 && state & 0x400 == 0
@@ -1474,7 +1513,11 @@ pub fn job_market(input: &Path) -> Result<String, String> {
     for ((x, z), (v, u)) in &cells {
         writeln!(out, "区画({x:>3},{z:>3})  空き {v:>6}  失業 {u:>6}").unwrap();
     }
-    writeln!(out, "空き求人のある事業所（FreeWorkplaces を持つ） {employers}").unwrap();
+    writeln!(
+        out,
+        "空き求人のある事業所（FreeWorkplaces を持つ） {employers}"
+    )
+    .unwrap();
     out.push_str("学歴/職場レベル  空き求人  失業(居住)  失業(通勤者)  就業者\n");
     for l in 0..5 {
         writeln!(
@@ -1578,10 +1621,22 @@ pub fn path_demand(input: &Path) -> Result<String, String> {
     rows.sort_by_key(|(_, v)| std::cmp::Reverse(v[1] + v[2]));
     let mut out = String::from("  経路待ち  作り直し待ち    失敗      件数  種類\n");
     for ((label, kind), v) in rows.iter().take(40) {
-        writeln!(out, "{:>10} {:>12} {:>7} {:>9}  [{kind}] {label}", v[1], v[2], v[3], v[0]).unwrap();
+        writeln!(
+            out,
+            "{:>10} {:>12} {:>7} {:>9}  [{kind}] {label}",
+            v[1], v[2], v[3], v[0]
+        )
+        .unwrap();
     }
-    let total: [u64; 2] = rows.iter().fold([0, 0], |a, (_, v)| [a[0] + v[1], a[1] + v[2]]);
-    writeln!(out, "合計: 経路待ち {} / 作り直し待ち {}", total[0], total[1]).unwrap();
+    let total: [u64; 2] = rows
+        .iter()
+        .fold([0, 0], |a, (_, v)| [a[0] + v[1], a[1] + v[2]]);
+    writeln!(
+        out,
+        "合計: 経路待ち {} / 作り直し待ち {}",
+        total[0], total[1]
+    )
+    .unwrap();
     Ok(out)
 }
 
@@ -1626,7 +1681,11 @@ pub fn count_entities(input: &Path, specs: &[&str]) -> Result<String, String> {
                     .iter()
                     .filter(|r| need.iter().all(|n| n.is_some_and(|n| r.types.contains(&n))))
                     .filter(|r| deny.iter().all(|d| d.is_none_or(|d| !r.types.contains(&d))))
-                    .map(|r| (0..r.count).filter(|&i| w.enabled(r.start + i, id) == Some(true)).count() as u64)
+                    .map(|r| {
+                        (0..r.count)
+                            .filter(|&i| w.enabled(r.start + i, id) == Some(true))
+                            .count() as u64
+                    })
                     .sum::<u64>()
             });
         match enabled {

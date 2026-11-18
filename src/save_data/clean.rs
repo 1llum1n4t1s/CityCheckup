@@ -235,8 +235,14 @@ fn strip_empty_links(
             if new.len() != count * 4 || old.len() != new.len() {
                 return Err(format!("{} の参照サイズが不正です", types[id].name));
             }
-            for (index, (old, new)) in old.chunks_exact(4).zip(new.chunks_exact(4)).enumerate() {
-                if old != [255; 4] && new == [255; 4] {
+            for (index, (old, new)) in old
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .zip(new.as_chunks::<4>().0)
+                .enumerate()
+            {
+                if *old != [255; 4] && *new == [255; 4] {
                     drop[index].push(id);
                 }
             }
@@ -623,7 +629,8 @@ fn rewrite_save_data(
 pub fn preview_cleanup(input: &Path) -> Result<CleanupPlan, String> {
     let mut zip = ZipArchive::new(File::open(input).map_err(|e| e.to_string())?)
         .map_err(|e| e.to_string())?;
-    let name = crate::archive::find_entry_name(&zip, ".SaveGameData").ok_or("SaveGameData がありません")?;
+    let name = crate::archive::find_entry_name(&zip, ".SaveGameData")
+        .ok_or("SaveGameData がありません")?;
     let mut reader = BufReader::new(Cursor::new(extract(&mut zip, &name)?));
     let header = find_first_frame(&mut reader)?;
     let types = parse_types(&read_frame(&mut reader, header, MAX_TABLE)?)?;
@@ -678,7 +685,8 @@ pub(super) fn write_save_copy(
     }
     let file = File::open(input).map_err(|e| e.to_string())?;
     let mut zip = ZipArchive::new(file).map_err(|e| e.to_string())?;
-    let save = crate::archive::find_entry_name(&zip, ".SaveGameData").ok_or("SaveGameData がありません")?;
+    let save = crate::archive::find_entry_name(&zip, ".SaveGameData")
+        .ok_or("SaveGameData がありません")?;
     let stem = save.strip_suffix(".SaveGameData").unwrap();
     let data_id = String::from_utf8(extract(&mut zip, &format!("{stem}.SaveGameData.cid"))?)
         .map_err(|e| e.to_string())?;

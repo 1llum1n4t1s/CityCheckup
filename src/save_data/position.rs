@@ -192,7 +192,12 @@ fn visit(
                 }
             }
             if let Some(positions) = positions {
-                for (index, transform) in frame[positions].chunks_exact_mut(28).enumerate() {
+                for (index, transform) in frame[positions]
+                    .as_chunks_mut::<28>()
+                    .0
+                    .iter_mut()
+                    .enumerate()
+                {
                     let before = coordinates(transform);
                     if outside {
                         report
@@ -250,7 +255,8 @@ fn visit(
 pub(super) fn read_save_data(input: &Path) -> Result<Vec<u8>, String> {
     let file = File::open(input).map_err(|e| e.to_string())?;
     let mut zip = ZipArchive::new(file).map_err(|e| e.to_string())?;
-    let name = crate::archive::find_entry_name(&zip, ".SaveGameData").ok_or("SaveGameData がありません")?;
+    let name = crate::archive::find_entry_name(&zip, ".SaveGameData")
+        .ok_or("SaveGameData がありません")?;
     let mut data = Vec::new();
     zip.by_name(&name)
         .map_err(|e| e.to_string())?
@@ -326,7 +332,7 @@ pub fn inspect_destinations(
                     }
                     _ => return Err("車線の形状データの形式が未対応です".into()),
                 };
-                for (index, curve) in curves.chunks_exact(48).enumerate() {
+                for (index, curve) in curves.as_chunks::<48>().0.iter().enumerate() {
                     let points = std::array::from_fn(|i| coordinates(&curve[i * 12..]));
                     if region.intersects_curve(&points) {
                         report.car_lanes += u64::from(car);
@@ -353,7 +359,7 @@ pub fn inspect_destinations(
                     return Err("駐車中の車の参照形式が未対応です".into());
                 }
                 parked_lane_ids.extend(
-                    block.chunks_exact(8).map(|record| {
+                    block.as_chunks::<8>().0.iter().map(|record| {
                         u64::from(u32::from_le_bytes(record[..4].try_into().unwrap()))
                     }),
                 );
@@ -363,8 +369,10 @@ pub fn inspect_destinations(
                     return Err("駐車施設の位置データの形式が未対応です".into());
                 }
                 report.parking_facilities += block
-                    .chunks_exact(28)
-                    .filter(|record| region.contains(coordinates(record)))
+                    .as_chunks::<28>()
+                    .0
+                    .iter()
+                    .filter(|record| region.contains(coordinates(*record)))
                     .count() as u64;
             }
         }

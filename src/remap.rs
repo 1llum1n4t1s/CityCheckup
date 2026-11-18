@@ -200,7 +200,7 @@ impl EntityRemap {
             let count = read_count(take(&mut rest, 4)?)?;
             take_records(&mut rest, count, 8)?;
             let count = read_count(take(&mut rest, 4)?)?;
-            for field in take_records(&mut rest, count, 4)?.chunks_exact_mut(4) {
+            for field in take_records(&mut rest, count, 4)?.as_chunks_mut::<4>().0 {
                 self.rewrite_id(field, false)?;
             }
             take(&mut rest, 8)?;
