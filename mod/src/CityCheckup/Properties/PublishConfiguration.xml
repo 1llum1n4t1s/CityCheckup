@@ -9,7 +9,7 @@
 	<!-- 2026-11-12 に初回公開（Hidden）。https://mods.paradoxplaza.com/mods/167225/Windows -->
 	<ModId Value="167225" />
 	<DisplayName Value="City Checkup" />
-	<ShortDescription Value="Find out why your city runs slowly, and clean up objects left behind by removed mods." />
+	<ShortDescription Value="Find out why your city runs slowly, clean up objects left behind by removed mods, and free your save from disabled DLC." />
 	<LongDescription>
 # City Checkup
 
@@ -30,7 +30,13 @@ The panel follows your game language: Japanese when the game is set to Japanese,
 * **Go** selects each one and moves the camera to it. Select the groups you want and delete them.
 * Roads, tracks and areas are listed but cannot be deleted here.
 
-**Deleting cannot be undone.** If you change your mind, load the city again without saving.
+## DLC
+* Shows which DLC your next save will require, and what in the city makes it required (vehicles, signs and props, company brands, companies, transit line vehicle settings, and more).
+* After you disable a DLC, removes those references so the save no longer requires it: vehicles and props are removed, brands are switched to an available one, companies whose type no longer exists move out, and line vehicle settings are cleared. It predicts before you save whether the DLC will still be required.
+* Only content that is currently disabled or missing is touched. Nothing changes until you press **Remove**.
+* Clears the "this save uses mods" record, so a save you have cleaned up can be loaded without mods. Loading it again with mods enabled records them again.
+
+**Deleting cannot be undone.** If you change your mind, load the city again without saving. Save under a new name.
 
 ---
 
@@ -40,15 +46,16 @@ The panel follows your game language: Japanese when the game is set to Japanese,
 
 * **負荷分析**：設定した速度より遅い原因を「経路探しの結果待ち」と「1 フレームの処理時間」に分けて表示します。経路探しの作業量が多い依頼、学歴別の求職者と空き職場、職が足りない地区も表示します。
 * **欠落アセット**：アンインストールした mod の物を探し、見に行ったり、選んで削除したりできます。
+* **DLC**：次の保存でセーブが必要とする DLC と、その原因（車両、看板などの付属物、会社のブランド、会社、路線の車両指定など）を表示します。DLC を無効にした後なら、その参照を取り除いて、セーブが DLC を必要としないようにできます。保存の前に、取り除いた後も必要かどうかを予測します。セーブに付く「MOD を使用しています」の記録も消せます（mod を有効にして読み込み直すと、また記録されます）。
 
-削除は元に戻せません。やり直すときは、保存せずに街を読み込み直してください。
+削除は元に戻せません。やり直すときは、保存せずに街を読み込み直してください。保存は別の名前でしてください。
 	</LongDescription>
 	<Thumbnail Value="Properties/Thumbnail.png" />
 	<Screenshot Value="Properties/Screenshot-LoadAnalysis.jpg" />
 	<Screenshot Value="Properties/Screenshot-MissingAssets.jpg" />
 	<Tag Value="Code Mod" />
 	<ForumLink Value="" />
-	<ModVersion Value="1.0.0" />
+	<ModVersion Value="1.0.1" />
 	<!-- 2026-11-12 時点で動作確認したゲームのバージョン（1.6.4f1）。 -->
 	<GameVersion Value="1.6.*" />
 	<Dependency Id="" />
