@@ -54,7 +54,7 @@ dotnet build mod/src/CityCheckup/CityCheckup.csproj -c Release -p:GameManaged=<C
   - `COK_TEST_MICHATOWN`: 大きい街の `.cok` セーブ（Michatown）のパス。
   - 期待値はこの 2 本のセーブの件数に固定しているので、別のセーブを渡すと失敗する。
   - `COK_TEST_REFERENCE_CAPTURE`: `tools/reference-capture` で記録した参照の記録（トレース）のパス。`COK_TEST_SAMPLE` と両方そろったときだけ照合する。
-- ゲーム内の確認は、`Mods\CityCheckup\` に置く目印ファイル（`debug-report`、`debug-missing`、`debug-delete`、`debug-speed3`、DLC の診断 `debug-dlc`、DLC の取り除き `debug-dlc-remove`、MOD 使用の記録を消す `debug-clear-mods`、英語表示に固定する `debug-lang-en`。`mod/src/CityCheckup/DebugMarkers.cs`）で UI 操作を代替し、`Player.log` と画面保存で結果を見る。通常の利用者環境には置かない。
+- ゲーム内の確認は、`Mods\CityCheckup\` に置く目印ファイル（`debug-report`、`debug-missing`、`debug-delete`、`debug-speed3`、DLC の診断 `debug-dlc`、DLC の取り除き `debug-dlc-remove`、MOD 使用の記録を消す `debug-clear-mods`、英語表示に固定する `debug-lang-en`。`mod/src/CityCheckup/DebugMarkers.cs`）で UI 操作を代替し、`Player.log` と画面保存で結果を見る。通常の利用者環境には置かない。目印は街の読み込み完了時に 1 回だけ読む（毎フレームは調べない）ので、置く・消すは街を読み込む前に行う。
 - 実セーブでの削除確認は、自動保存で上書きされる前にゲームを止め、保存一覧の前後を比較する。
 - 確認用に `Mods\CityCheckup\` へ開発版を直接置くと、購読している公開版と二重に読み込まれる。確認の間は購読を無効にし、終わったら直接置きを片付けて購読へ戻す。
 
