@@ -137,7 +137,7 @@ public sealed class MissingAssets
         _ => "area",
     };
 
-    /// <param name="state">UI に見せる状態（idle / scanning / ready / deleting）。</param>
+    /// <param name="state">UI に見せる状態（idle / ready / deleting）。</param>
     /// <param name="lastDeleted">直前の削除で消した数（まだ削除していなければ null）。</param>
     public string ToJson(string state, int? lastDeleted)
     {

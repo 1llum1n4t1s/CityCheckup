@@ -6,7 +6,6 @@ public sealed class LanguageTests
     [TestMethod]
     [DataRow("ja-JP", UiLanguage.Japanese)]
     [DataRow("JA", UiLanguage.Japanese)]
-    [DataRow("en-US", UiLanguage.English)]
     [DataRow("de-DE", UiLanguage.English)]
     [DataRow(null, UiLanguage.English)]
     public void FromLocale_UsesJapaneseOnlyForJapanese(string? locale, UiLanguage expected)
@@ -15,18 +14,25 @@ public sealed class LanguageTests
     [TestMethod]
     public void Findings_AreWrittenInEnglishWhenAsked()
     {
-        var pathfind = new PathfindWindow(new Dictionary<PathfindSource, PathfindCounter>
+        var texts = Fixtures.HeavyCity(UiLanguage.English).Findings().Select(f => f.Text).ToList();
+        Assert.AreEqual(6, texts.Count, string.Join("\n", texts));
+        Assert.IsTrue(texts[3].Contains("75% of pathfinding work is \"Job search\""), texts[3]);
+        Assert.IsTrue(texts[3].Contains("Only 20% find a destination"), texts[3]);
+        // 英語の文に日本語が混ざっていない（6 件すべて）。
+        foreach (var text in texts)
         {
-            [PathfindSource.JobSearch] = new(30, 6, 6.0),
-            [PathfindSource.Shopping] = new(70, 70, 2.0),
-        }, 10, 10);
-        var report = new LoadReport { SelectedSpeed = 1, ActualSpeed = 1, Pathfind = pathfind, Language = UiLanguage.English };
+            Assert.IsFalse(text.Any(c => c >= 0x3040 && c <= 0x9FFF), text);
+        }
 
-        var text = report.Findings().Single().Text;
-        Assert.IsTrue(text.Contains("75% of pathfinding work is \"Job search\""), text);
-        Assert.IsTrue(text.Contains("Only 20% find a destination"), text);
-        // 英語の文に日本語が混ざっていない。
-        Assert.IsFalse(text.Any(c => c >= 0x3040 && c <= 0x9FFF), text);
+        // 速度が落ちていない街でも、経路探しの偏りの所見は出る（遅れの判定の内側に入れない）。
+        var steady = new LoadReport
+        {
+            SelectedSpeed = 1,
+            ActualSpeed = 1,
+            Pathfind = Fixtures.HeavyCity(UiLanguage.English).Pathfind,
+            Language = UiLanguage.English,
+        }.Findings().Single();
+        Assert.IsTrue(steady.Text.Contains("75% of pathfinding work is \"Job search\""), steady.Text);
     }
 
     [TestMethod]

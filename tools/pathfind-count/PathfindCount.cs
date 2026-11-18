@@ -2,7 +2,8 @@
 //
 // 目的: 大きな街で経路探しの待ち行列が飽和している原因（どの処理の依頼が多いか）を特定する。
 // 設計:
-// - ゲームの処理は一切変えない。PathfindSetupSystem の直前と直後に動く読み取り専用のシステムを追加するだけ。
+// - 計測は読み取り専用。PathfindSetupSystem の直前と直後に動くシステムを追加するだけで、計測のためにゲームの処理は変えない。
+//   例外として、fix.enabled ファイルがあるときだけ SwitchJobRateFixSystem が m_SwitchJobRate を書き換える（修正案の効果を測る比較用）。
 // - PathfindSetupSystem は OnUpdate の先頭で前回の依頼一覧(m_ActionList)を片付け、そのフレームの新しい依頼を積む。
 //   そのため直後に m_ActionList を読めば、そのフレームに受け付けた依頼だけを数えられる。
 // - ただし受付待ちの列(m_ActiveQueues)が空のフレームは OnUpdate が先頭で戻り、一覧が前回のまま残る。

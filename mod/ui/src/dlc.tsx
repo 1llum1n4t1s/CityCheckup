@@ -3,6 +3,7 @@
 // 末尾の「MOD 使用の記録」は別の値 "usedMods"（Core の UsedModsView.ToJson）を表示し、clearUsedMods で記録を消す。
 import { React, api } from "./game";
 import { useTexts } from "./i18n";
+import { parseJson } from "./json";
 import { GROUP, colors, fmt, s } from "./style";
 
 const dlc$ = api.bindValue<string>(GROUP, "dlc", "{}");
@@ -18,15 +19,7 @@ interface UsedModsReport {
   clearedCount?: number;
 }
 
-function parseUsedMods(text: string): UsedModsReport {
-  try {
-    return JSON.parse(text) as UsedModsReport;
-  } catch {
-    return {};
-  }
-}
-
-export type DlcAction = "delete" | "rebrand" | "clearModel" | "rebuildDelete" | "listOnly" | "needsDlcDisabled" | "noCandidate" | "moveAway";
+type DlcAction = "delete" | "rebrand" | "clearModel" | "rebuildDelete" | "listOnly" | "needsDlcDisabled" | "noCandidate" | "moveAway";
 
 interface DlcCategory {
   key: string;
@@ -67,23 +60,15 @@ interface DlcReport {
   contents?: DlcContent[];
 }
 
-function parse(text: string): DlcReport {
-  try {
-    return JSON.parse(text) as DlcReport;
-  } catch {
-    return {};
-  }
-}
-
 // mod が取り除ける処置（C# 側 DlcRemoval.IsRemovable と同じ）。
 const removable = (a: DlcAction) => a === "delete" || a === "rebrand" || a === "clearModel" || a === "rebuildDelete" || a === "moveAway";
 
 export function DlcTab() {
   const t = useTexts();
   const text = api.useValue(dlc$);
-  const report = React.useMemo(() => parse(text), [text]);
+  const report = React.useMemo(() => parseJson<DlcReport>(text, {}), [text]);
   const usedText = api.useValue(usedMods$);
-  const used = React.useMemo(() => parseUsedMods(usedText), [usedText]);
+  const used = React.useMemo(() => parseJson<UsedModsReport>(usedText, {}), [usedText]);
   const usedCount = used.count ?? 0;
   const contents = report.contents ?? [];
   const predicted = report.predicted ?? [];
@@ -176,7 +161,7 @@ export function DlcTab() {
                 {isConfirming && <div style={{ color: colors.warn }}>{t.dlcConfirm(deleting, rebranding, companies, c.blocked)}</div>}
                 <div style={{ ...s.row, justifyContent: "flex-start", marginTop: "6rem" }}>
                   <button
-                    style={{ ...s.smallButton, background: isConfirming ? "rgba(255, 112, 67, 0.6)" : s.smallButton.background }}
+                    style={{ ...s.smallButton, background: isConfirming ? colors.confirm : s.smallButton.background }}
                     onClick={() => remove(c)}
                   >
                     {isConfirming ? t.dlcRemoveNow : t.dlcRemove}

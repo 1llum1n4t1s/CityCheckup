@@ -60,6 +60,9 @@ public sealed partial class MissingAssetSystem : UISystemBase
     private int m_RescanCountdown;
 
     // 動作確認用（DebugMarkers）の進行。
+    // 目印は読み込み完了時に 1 回だけ見る（通常の利用で毎フレームファイルを調べないため。DlcRemovalSystem と同じ扱い）。
+    private bool m_DebugMissing;
+    private bool m_DebugDelete;
     private int m_DebugStep;
     private float m_DebugAt;
 
@@ -130,6 +133,9 @@ public sealed partial class MissingAssetSystem : UISystemBase
         m_InGame = mode == GameMode.Game;
         m_DebugStep = 0;
         m_DebugAt = UnityEngine.Time.realtimeSinceStartup + 5f;
+        // 街を読み込むたびに読み直す。読み込み後に置いた・消した目印は、次の読み込みまで反映されない。
+        m_DebugMissing = DebugMarkers.Has("debug-missing");
+        m_DebugDelete = DebugMarkers.Has("debug-delete");
     }
 
     protected override void OnUpdate()
@@ -163,9 +169,10 @@ public sealed partial class MissingAssetSystem : UISystemBase
                 }
                 catch (Exception e)
                 {
-                    // 欠落の記録と食い違う場合は、その種類だけ名前を伏せて数える（一覧全体は止めない）。
-                    obsolete[prefab] = ("?", "(名前不明)");
-                    Debug.LogWarning($"{Mod.LogPrefix} 欠落プレハブの名前を引けませんでした: {e.Message}");
+                    // 欠落の記録と食い違う場合は、その種類だけ名前を空にして数える（一覧全体は止めない）。
+                    // 表示名（「名前不明」）は言語に合わせて UI が補う。
+                    obsolete[prefab] = ("?", string.Empty);
+                    Debug.LogWarning($"{Mod.LogPrefix} could not resolve the name of a missing prefab: {e.Message}");
                 }
             }
         }
@@ -260,8 +267,8 @@ public sealed partial class MissingAssetSystem : UISystemBase
     /// <summary>動作確認用（DebugMarkers の debug-missing / debug-delete）の自動操作。</summary>
     private void RunDebug()
     {
-        var missing = DebugMarkers.Has("debug-missing");
-        var delete = DebugMarkers.Has("debug-delete");
+        var missing = m_DebugMissing;
+        var delete = m_DebugDelete;
         if (!missing && !delete)
         {
             return;

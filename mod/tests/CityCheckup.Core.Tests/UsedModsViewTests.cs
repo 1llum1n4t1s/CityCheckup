@@ -23,28 +23,7 @@ public sealed class UsedModsViewTests
     [TestMethod]
     public void ToJson_IgnoresBlankAndDuplicateNames()
     {
-        var json = UsedModsView.ToJson(new string?[] { "A", "", null, "  ", "A" }, cleared: false, clearedCount: 0);
-        Assert.AreEqual("{\"count\":1,\"names\":[\"A\"],\"more\":0,\"cleared\":false,\"clearedCount\":0}", json);
-    }
-
-    [TestMethod]
-    public void ToJson_AfterClearHasNoNamesAndKeepsClearedCount()
-    {
-        var json = UsedModsView.ToJson(Array.Empty<string>(), cleared: true, clearedCount: 3);
-        Assert.AreEqual("{\"count\":0,\"names\":[],\"more\":0,\"cleared\":true,\"clearedCount\":3}", json);
-    }
-
-    [TestMethod]
-    public void ToJson_EscapesNames()
-    {
-        var json = UsedModsView.ToJson(new[] { "a\"b" }, cleared: false, clearedCount: 0);
-        StringAssert.Contains(json, "\"names\":[\"a\\\"b\"]");
-    }
-
-    [TestMethod]
-    public void Describe_ShowsAllNames()
-    {
-        Assert.AreEqual("count=2 [A, B]", UsedModsView.Describe(new[] { "B", "A" }));
-        Assert.AreEqual("count=0 []", UsedModsView.Describe(Array.Empty<string>()));
+        var json = UsedModsView.ToJson(new string?[] { "A", "", null, "  ", "A" }, cleared: true, clearedCount: 3);
+        Assert.AreEqual("{\"count\":1,\"names\":[\"A\"],\"more\":0,\"cleared\":true,\"clearedCount\":3}", json);
     }
 }

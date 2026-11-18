@@ -3,5 +3,5 @@
   "gameDir": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Cities Skylines II",
   "userDataDir": "C:\\Users\\player\\AppData\\LocalLow\\Colossal Order\\Cities Skylines II",
   "gameManaged": "D:\\path\\to\\Cities2_Data\\Managed",
-  "workDir": "D:\\tmp\\CityCheckup-release"
+  "workDir": "C:\\Users\\player\\AppData\\Local\\Temp\\CityCheckup-release"
 }

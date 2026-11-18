@@ -22,6 +22,8 @@ export const colors = {
   warn: "#ffb74d",
   bar: "#4fc3f7",
   button: "rgba(79, 195, 247, 0.25)",
+  // 2 段階確認の確認中のボタンの色。
+  confirm: "rgba(255, 112, 67, 0.6)",
   tabActive: "rgba(79, 195, 247, 0.55)",
 };
 

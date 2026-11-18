@@ -63,6 +63,7 @@ const ja = {
   deletedRefreshing: (n: number | null | undefined) => `${fmt(n)} 個を削除しました。一覧を更新しています…`,
   deletedJustNow: (n: number | null | undefined) => `直前に ${fmt(n)} 個を削除しました。`,
   notFound: "見つかりませんでした。",
+  unknownName: "(名前不明)",
   kinds: { building: "建物", object: "置き物", net: "道路・線路", area: "エリア" } as Record<string, string>,
   groupDetail: (kind: string, count: number, deletable: number) =>
     `${kind}・${fmt(count)} か所` + (deletable < count ? `（消せるのは ${fmt(deletable)} か所。建物の一部や道路はここでは消せません）` : ""),
@@ -198,6 +199,7 @@ const en: Texts = {
   deletedRefreshing: (n) => `Deleted ${fmt(n)}. Updating the list…`,
   deletedJustNow: (n) => `Deleted ${fmt(n)} just now.`,
   notFound: "Nothing found.",
+  unknownName: "(unknown name)",
   kinds: { building: "Building", object: "Object", net: "Road / track", area: "Area" },
   groupDetail: (kind, count, deletable) =>
     `${kind}, ${fmt(count)} placed` + (deletable < count ? ` (${fmt(deletable)} can be deleted here; parts of buildings and roads cannot)` : ""),

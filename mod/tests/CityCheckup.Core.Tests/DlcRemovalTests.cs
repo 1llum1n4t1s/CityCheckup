@@ -168,22 +168,17 @@ public sealed class DlcRemovalTests
             new DlcBrandCandidate(new EntityId(8, 1), missing: false, Array.Empty<EntityId>()),
             new DlcBrandCandidate(new EntityId(9, 1), missing: false, Array.Empty<EntityId>()),
         };
+        var chosen = new HashSet<int>();
         for (uint seed = 0; seed < 10; seed++)
         {
             var i = DlcRemoval.SelectBrand(candidates, forbidden, seed);
-            Assert.IsTrue(i is 1 or 2);
+            // 使える候補（1 と 2）の中から、種を候補数で割った余りで選ぶ（同じ街なら同じ結果）。
+            Assert.AreEqual(1 + (int)(seed % 2), i);
+            // 同じ種なら同じブランドになる。
+            Assert.AreEqual(i, DlcRemoval.SelectBrand(candidates, forbidden, seed));
+            chosen.Add(i);
         }
-    }
-
-    [TestMethod]
-    public void SelectBrand_SameSeedSameBrand()
-    {
-        var candidates = Enumerable.Range(1, 5)
-            .Select(i => new DlcBrandCandidate(new EntityId(20 + i, 1), missing: false, Array.Empty<EntityId>()))
-            .ToArray();
-        var none = new HashSet<EntityId>();
-        Assert.AreEqual(DlcRemoval.SelectBrand(candidates, none, 123456), DlcRemoval.SelectBrand(candidates, none, 123456));
-        Assert.AreEqual(123456 % 5, DlcRemoval.SelectBrand(candidates, none, 123456));
+        CollectionAssert.AreEquivalent(new[] { 1, 2 }, chosen.ToList());
     }
 
     [TestMethod]
@@ -214,14 +209,19 @@ public sealed class DlcRemovalTests
     public void PredictedAfterRemoval_KeepsContentWithListOnlyReferences()
     {
         var d = Sample();
-        Add(d, DlcRefPath.PrefabRef, Bus, DlcRemoval.Classify(DlcRefPath.PrefabRef, DlcHolderKind.Vehicle, true, false), 3);
-        Add(d, DlcRefPath.PrefabRef, SfCar, DlcRemoval.Classify(DlcRefPath.PrefabRef, DlcHolderKind.Vehicle, false, false), 2);
+        Add(d, DlcRefPath.PrefabRef, Bus, DlcRemoval.Classify(DlcRefPath.PrefabRef, DlcHolderKind.Vehicle, true, false), 2);
+        Add(d, DlcRefPath.PrefabRef, SfCar, DlcRemoval.Classify(DlcRefPath.PrefabRef, DlcHolderKind.Vehicle, false, false), 1);
         CollectionAssert.AreEqual(new[] { "BridgesAndPorts", "SanFranciscoSet" }, d.PredictedContents().Select(c => c.Name).ToList());
         // 車両は取り除けるので Ports は消える。SF は DLC が有効なままなので残る。
         CollectionAssert.AreEqual(new[] { "SanFranciscoSet" }, d.PredictedAfterRemoval().Select(c => c.Name).ToList());
 
         Add(d, DlcRefPath.PrefabRef, Pier, DlcRemoval.Classify(DlcRefPath.PrefabRef, DlcHolderKind.Net, true, false), 1);
         CollectionAssert.AreEqual(new[] { "BridgesAndPorts", "SanFranciscoSet" }, d.PredictedAfterRemoval().Select(c => c.Name).ToList());
+
+        var text = string.Join("\n", d.BuildLines(null, "x"));
+        StringAssert.Contains(text, "dlc   categories: netArea/listOnly=1 vehicle/delete=2");
+        StringAssert.Contains(text, "dlc holder kinds path=PrefabRef: vehicle=3(missing 2) net=1(missing 1)");
+        StringAssert.Contains(text, "dlc predicted after removal (would still require): BridgesAndPorts, SanFranciscoSet");
     }
 
     [TestMethod]
@@ -262,6 +262,7 @@ public sealed class DlcRemovalTests
         Assert.AreEqual(DlcContentStatus.Loaded, sf.Status);
         Assert.AreEqual(DlcAction.NeedsDlcDisabled, sf.Categories.Single().Action);
         Assert.AreEqual(DlcDiagnostics.JumpsPerCategory, sf.Categories.Single().Jumps.Count);
+        StringAssert.Contains(DlcView.ToJson("ready", view, Array.Empty<string>(), Array.Empty<string>(), null), "\"status\":\"loaded\"");
     }
 
     [TestMethod]
@@ -278,12 +279,16 @@ public sealed class DlcRemovalTests
     {
         var d = Sample();
         Add(d, DlcRefPath.PrefabRef, Billboard, DlcRemoval.Classify(DlcRefPath.PrefabRef, DlcHolderKind.SubObject, true, true), 2);
-        var last = new DlcRemovalResult("BridgesAndPorts") { Deleted = 3, Rebranded = 1, MovedAway = 5, RoutesCleared = 2, Skipped = 4, OrphansCleaned = 6 };
+        var last = new DlcRemovalResult("BridgesAndPorts") { Deleted = 3, Rebranded = 1, MovedAway = 5, RoutesCleared = 2, Skipped = 4, OrphansCleaned = 6, Failed = true };
         var json = DlcView.ToJson("ready", d.BuildView(), d.PredictedContents().Select(c => c.Name), d.PredictedAfterRemoval().Select(c => c.Name), last);
-        StringAssert.StartsWith(json, "{\"state\":\"ready\",\"last\":{\"content\":\"BridgesAndPorts\",\"deleted\":3,\"rebranded\":1,\"movedAway\":5,\"routesCleared\":2,\"skipped\":4,\"orphansCleaned\":6,\"failed\":false}");
+        StringAssert.StartsWith(json, "{\"state\":\"ready\",\"last\":{\"content\":\"BridgesAndPorts\",\"deleted\":3,\"rebranded\":1,\"movedAway\":5,\"routesCleared\":2,\"skipped\":4,\"orphansCleaned\":6,\"failed\":true}");
         StringAssert.Contains(json, "\"predicted\":[\"BridgesAndPorts\"],\"predictedAfter\":[]");
         StringAssert.Contains(json, "{\"key\":\"BridgesAndPorts\",\"name\":\"BridgesAndPorts\",\"dlcId\":5,\"status\":\"missing\",\"required\":true,\"remainsAfter\":false,\"removable\":2,\"blocked\":0,\"companies\":0");
         StringAssert.Contains(json, "{\"key\":\"BridgesAndPorts|subObject|rebuildDelete\",\"kind\":\"subObject\",\"action\":\"rebuildDelete\",\"count\":2,\"jumps\":2,\"samples\":[{\"name\":\"Billboard \\\"Calamari\\\"\",\"count\":2}]}");
+
+        // 失敗していない取り除きは "failed":false（成功のたびに失敗表示が出ないこと）。
+        var ok = DlcView.ToJson("ready", d.BuildView(), Array.Empty<string>(), Array.Empty<string>(), new DlcRemovalResult("BridgesAndPorts"));
+        StringAssert.Contains(ok, "\"failed\":false}");
 
         var empty = DlcView.ToJson("idle", Array.Empty<DlcContentView>(), Array.Empty<string>(), Array.Empty<string>(), null);
         Assert.AreEqual("{\"state\":\"idle\",\"last\":null,\"predicted\":[],\"predictedAfter\":[],\"contents\":[]}", empty);
@@ -323,19 +328,23 @@ public sealed class DlcRemovalTests
         Assert.IsTrue(d.Covers(Pier, Billboard));
         Assert.IsFalse(d.Covers(SfCar, Billboard));
         Assert.IsFalse(d.Covers(new EntityId(99, 1), Billboard));
-    }
 
-    [TestMethod]
-    public void BuildLines_ShowsCategoriesKindsAndPredictionAfterRemoval()
-    {
-        var d = Sample();
-        Add(d, DlcRefPath.PrefabRef, Bus, DlcRemoval.Classify(DlcRefPath.PrefabRef, DlcHolderKind.Vehicle, true, false), 2);
-        Add(d, DlcRefPath.PrefabRef, Pier, DlcRemoval.Classify(DlcRefPath.PrefabRef, DlcHolderKind.Net, true, false), 1);
-        Add(d, DlcRefPath.PrefabRef, SfCar, DlcRemoval.Classify(DlcRefPath.PrefabRef, DlcHolderKind.Vehicle, false, false), 1);
-        var text = string.Join("\n", d.BuildLines(null, "x"));
-        StringAssert.Contains(text, "dlc   categories: netArea/listOnly=1 vehicle/delete=2");
-        StringAssert.Contains(text, "dlc holder kinds path=PrefabRef: vehicle=3(missing 2) net=1(missing 1)");
-        StringAssert.Contains(text, "dlc predicted after removal (would still require): BridgesAndPorts, SanFranciscoSet");
+        // Two は Ports と Sf の両方に届く。片方にしか届かない Pier は Two を覆えないが、Two は Pier を覆う。
+        var two = new EntityId(40, 1);
+        var both = new DlcDiagnostics(
+            new[]
+            {
+                new DlcContent(Ports, "BridgesAndPorts", 5, 1, missing: true),
+                new DlcContent(Sf, "SanFranciscoSet", 1, 1, missing: false),
+            },
+            new[]
+            {
+                new DlcPrerequisite(Pier, "Pier", Ports, "BridgesAndPorts", DlcReach.ContentPrerequisite, holderEnabled: false),
+                new DlcPrerequisite(two, "Two", Ports, "BridgesAndPorts", DlcReach.ContentPrerequisite, holderEnabled: false),
+                new DlcPrerequisite(two, "Two", Sf, "SanFranciscoSet", DlcReach.ContentPrerequisite, holderEnabled: false),
+            });
+        Assert.IsFalse(both.Covers(Pier, two));
+        Assert.IsTrue(both.Covers(two, Pier));
     }
 
     [TestMethod]
@@ -408,14 +417,5 @@ public sealed class DlcRemovalTests
         var text = string.Join("\n", d.BuildLines(null, "x"));
         StringAssert.Contains(text, "path=TransportUsage refs=1");
         StringAssert.Contains(text, "path=CityRequiredContent refs=1");
-    }
-
-    [TestMethod]
-    public void ToJson_ReportsFailedRemoval()
-    {
-        var last = new DlcRemovalResult(string.Empty) { Deleted = 7, Failed = true };
-        var json = DlcView.ToJson("ready", Array.Empty<DlcContentView>(), Array.Empty<string>(), Array.Empty<string>(), last);
-        StringAssert.Contains(json, "\"deleted\":7,");
-        StringAssert.Contains(json, "\"orphansCleaned\":0,\"failed\":true}");
     }
 }

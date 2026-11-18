@@ -39,6 +39,8 @@ public sealed partial class PanelUISystem : UISystemBase
     private bool m_Open;
     private bool m_InGame;
     private bool m_DebugReport;
+    // debug-lang-en の目印。OnCreate と読み込み完了時に 1 回だけ見る（毎秒ファイルを調べないため）。
+    private bool m_DebugLangEn;
     private string m_DebugShotPath = string.Empty;
     private int m_DebugScans;
     private float m_NextRefresh;
@@ -61,6 +63,7 @@ public sealed partial class PanelUISystem : UISystemBase
         m_Status = new ValueBinding<string>(Group, "status", "{}");
         AddBinding(m_Status);
         // 表示言語（"ja" / "en"）。ゲームの言語設定に合わせ、日本語以外は英語にする。
+        m_DebugLangEn = DebugMarkers.Has("debug-lang-en");
         m_Locale = new ValueBinding<string>(Group, "locale", UiLanguages.Key(CurrentLanguage()));
         AddBinding(m_Locale);
         AddBinding(new TriggerBinding<bool>(Group, "setOpen", OnSetOpen));
@@ -99,6 +102,8 @@ public sealed partial class PanelUISystem : UISystemBase
     {
         base.OnGameLoadingComplete(purpose, mode);
         m_InGame = mode == GameMode.Game;
+        // 街を読み込むたびに目印を読み直す。読み込み後に置いた・消した目印は、次の読み込みまで反映されない。
+        m_DebugLangEn = DebugMarkers.Has("debug-lang-en");
         // 読み込み前に開いていた場合も、読み込み完了の直後に数え直す。
         m_NextScan = 0f;
         m_Probe.Begin();
@@ -184,9 +189,9 @@ public sealed partial class PanelUISystem : UISystemBase
     /// <summary>
     /// 表示言語。動作確認用の debug-lang-en があれば英語に固定する（検証機の言語設定を変えずに英語表示を確かめるため）。
     /// </summary>
-    private static UiLanguage CurrentLanguage()
+    private UiLanguage CurrentLanguage()
     {
-        if (DebugMarkers.Has("debug-lang-en"))
+        if (m_DebugLangEn)
         {
             return UiLanguage.English;
         }

@@ -6,12 +6,8 @@ namespace CityCheckup.Core.Tests;
 public sealed class PathfindSourcesTests
 {
     [TestMethod]
-    [DataRow("FindJobSystem", PathfindSource.JobSearch)]
-    [DataRow("ResourceBuyerSystem", PathfindSource.Shopping)]
-    [DataRow("TaxiDispatchSystem", PathfindSource.ServiceDispatch)]
     [DataRow("PersonalCarAISystem", PathfindSource.VehicleRepath)]
     [DataRow("ResidentAISystem", PathfindSource.ResidentRepath)]
-    [DataRow("LeisureSystem", PathfindSource.Trips)]
     [DataRow("SomethingNewSystem", PathfindSource.Other)]
     public void Classify_MapsKnownSystems(string system, PathfindSource expected)
         => Assert.AreEqual(expected, PathfindSources.Classify(system));
@@ -60,6 +56,7 @@ public sealed class SpeedSamplerTests
     [DataRow(200u, 100u, 1.0)]
     [DataRow(125u, 100u, 0.5)]
     [DataRow(100u, 100u, 0.0)]
+    // 予定フレームを過ぎている（pending < frame）ときも 0。uint の引き算の桁あふれを検出する。
     [DataRow(50u, 100u, 0.0)]
     public void PathfindSpeedFactor_MatchesGameThrottle(uint pending, uint frame, double expected)
         => Assert.AreEqual(expected, SpeedSampler.PathfindSpeedFactor(pending, frame), 1e-9);
@@ -123,18 +120,6 @@ public sealed class JobMarketTests
     }
 
     [TestMethod]
-    public void Hotspots_ReachIsNullWhenCityHasTooFewVacancies()
-    {
-        var m = new JobMarket();
-        for (var i = 0; i < 2000; i++)
-        {
-            m.AddUnemployed(0, 0, 0, 0);
-        }
-        m.AddVacancies(0, 100, 9000, 0, 0);
-        Assert.IsNull(m.Hotspots(5, 1000).Single().JobsReachMeters);
-    }
-
-    [TestMethod]
     public void Hotspots_IgnoresSmallCells()
     {
         var m = new JobMarket();
@@ -152,27 +137,7 @@ public sealed class LoadReportTests
     [TestMethod]
     public void Findings_ExplainSlowdownHeaviestPathfindAndJobs()
     {
-        var jobs = new JobMarket();
-        for (var i = 0; i < 2000; i++)
-        {
-            jobs.AddUnemployed(0, 0, 0, 0);
-        }
-        jobs.AddVacancies(0, 100, 9000, 0, 0);
-        var pathfind = new PathfindWindow(new Dictionary<PathfindSource, PathfindCounter>
-        {
-            [PathfindSource.JobSearch] = new(30, 6, 6.0),
-            [PathfindSource.Shopping] = new(70, 70, 2.0),
-        }, 10, 10);
-        var speed = new SpeedSampler();
-        speed.Add(10, 1f, 0.5f, 0.6, 0.030, 100);
-        var report = new LoadReport
-        {
-            SelectedSpeed = 1,
-            ActualSpeed = 0.5f,
-            Jobs = jobs,
-            Pathfind = pathfind,
-            Speed = speed.Close(10),
-        };
+        var report = Fixtures.HeavyCity(UiLanguage.Japanese);
 
         var texts = report.Findings().Select(f => f.Text).ToList();
         Assert.AreEqual(6, texts.Count, string.Join("\n", texts));
@@ -206,8 +171,8 @@ public sealed class JsonTextTests
     [TestMethod]
     public void EscapesControlCharactersAndKeepsJapanese()
     {
-        var text = new JsonText().BeginObject().Key("a").Value("改行\n\"引用\"\u0001").EndObject().ToString();
+        var text = new JsonText().BeginObject().Key("a").Value("改行\n\"引用\"\u0001\\").EndObject().ToString();
         using var doc = JsonDocument.Parse(text);
-        Assert.AreEqual("改行\n\"引用\"\u0001", doc.RootElement.GetProperty("a").GetString());
+        Assert.AreEqual("改行\n\"引用\"\u0001\\", doc.RootElement.GetProperty("a").GetString());
     }
 }

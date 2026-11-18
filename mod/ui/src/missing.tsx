@@ -2,6 +2,7 @@
 // 探す・見に行く・選んで消すを C# 側のトリガーへ送る。
 import { React, api } from "./game";
 import { useTexts } from "./i18n";
+import { parseJson } from "./json";
 import { GROUP, colors, s } from "./style";
 
 const missing$ = api.bindValue<string>(GROUP, "missing", "{}");
@@ -23,18 +24,10 @@ interface MissingReport {
   groups?: MissingGroup[];
 }
 
-function parse(text: string): MissingReport {
-  try {
-    return JSON.parse(text) as MissingReport;
-  } catch {
-    return {};
-  }
-}
-
 export function MissingTab() {
   const t = useTexts();
   const text = api.useValue(missing$);
-  const report = React.useMemo(() => parse(text), [text]);
+  const report = React.useMemo(() => parseJson<MissingReport>(text, {}), [text]);
   const groups = report.groups ?? [];
   // 選んだグループ（key）と、「見に行く」で次に見る順番。
   const [selected, setSelected] = React.useState<Record<string, boolean>>({});
@@ -97,7 +90,7 @@ export function MissingTab() {
                   background: selected[g.key] ? colors.bar : "transparent",
                 }}
               />
-              <div>{g.name}</div>
+              <div>{g.name === "" ? t.unknownName : g.name}</div>
             </div>
             <button style={s.smallButton} onClick={() => jump(g)}>
               {t.goSee}
@@ -117,7 +110,7 @@ export function MissingTab() {
               : t.selectedCount(chosenCount)}
           </div>
           <div style={{ ...s.row, justifyContent: "flex-start", marginTop: "6rem" }}>
-            <button style={{ ...s.smallButton, background: confirming ? "rgba(255, 112, 67, 0.6)" : s.smallButton.background }} onClick={remove}>
+            <button style={{ ...s.smallButton, background: confirming ? colors.confirm : s.smallButton.background }} onClick={remove}>
               {confirming ? t.deleteNow : t.deleteSelected}
             </button>
             {confirming && (

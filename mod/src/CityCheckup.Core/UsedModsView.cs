@@ -20,13 +20,7 @@ public static class UsedModsView
     /// <param name="clearedCount">消した記録の件数（消していなければ 0）。</param>
     public static string ToJson(IEnumerable<string?> names, bool cleared, int clearedCount)
     {
-        // 空の名前は数えない。重複はゲーム側の集合が持たないが、渡し方に依存しないよう取り除く。
-        var all = names
-            .Where(n => !string.IsNullOrWhiteSpace(n))
-            .Select(n => n!)
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(n => n, StringComparer.Ordinal)
-            .ToList();
+        var all = Normalize(names);
         var json = new JsonText().BeginObject();
         json.Key("count").Value(all.Count);
         json.Key("names").BeginArray();
@@ -44,12 +38,15 @@ public static class UsedModsView
     /// <summary>動作確認用のログの 1 行（件数と全部の名前）。</summary>
     public static string Describe(IEnumerable<string?> names)
     {
-        var all = names
-            .Where(n => !string.IsNullOrWhiteSpace(n))
-            .Select(n => n!)
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(n => n, StringComparer.Ordinal)
-            .ToList();
+        var all = Normalize(names);
         return $"count={all.Count} [{string.Join(", ", all)}]";
     }
+
+    // 空の名前は数えない。重複はゲーム側の集合が持たないが、渡し方に依存しないよう取り除いて並べる。
+    private static List<string> Normalize(IEnumerable<string?> names) => names
+        .Where(n => !string.IsNullOrWhiteSpace(n))
+        .Select(n => n!)
+        .Distinct(StringComparer.Ordinal)
+        .OrderBy(n => n, StringComparer.Ordinal)
+        .ToList();
 }

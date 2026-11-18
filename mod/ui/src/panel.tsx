@@ -1,6 +1,7 @@
 // 「負荷分析」タブ。C# 側 PanelUISystem の "status"（LoadReport.ToJson の JSON 文字列）を表示する。
 import { React, api } from "./game";
 import { useTexts } from "./i18n";
+import { parseJson } from "./json";
 import { GROUP, colors, fmt, pct, s } from "./style";
 
 const status$ = api.bindValue<string>(GROUP, "status", "{}");
@@ -36,15 +37,6 @@ interface Report {
   findings?: { level: "warning" | "info"; text: string }[];
 }
 
-
-function parseReport(text: string): Report {
-  try {
-    return JSON.parse(text) as Report;
-  } catch {
-    // 壊れた値で UI 全体を落とさない。次の更新で直る。
-    return {};
-  }
-}
 
 type T = ReturnType<typeof useTexts>;
 
@@ -189,7 +181,7 @@ export function loadReady(): boolean {
 export function LoadTab() {
   const t = useTexts();
   const statusText = api.useValue(status$);
-  const report = React.useMemo(() => parseReport(statusText), [statusText]);
+  const report = React.useMemo(() => parseJson<Report>(statusText, {}), [statusText]);
   return (
     <div>
       <Findings report={report} t={t} />

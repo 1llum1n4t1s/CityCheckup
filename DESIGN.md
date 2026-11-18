@@ -64,7 +64,7 @@ Cities: Skylines II の街が重い原因を見える化し、アンインスト
 
 | モジュール | 責務 |
 | --- | --- |
-| `archive` | `.cok` を開き、項目一覧と外部 `.cid` を扱う。 |
+| `archive` | `.cok`（ZIP）の中から、名前が指定の接尾辞で終わる項目を探す。 |
 | `save_data` | `SaveGameData` の解析、削除候補の判定（`clean`）、各種試験コピーの作成と照合（`*_trial`、`position`）。 |
 | `capture` | ゲーム側で採取した参照記録（`SCR1`）の読み取り。フレームの指紋と、参照 ID の位置・値。 |
 | `remap` | 削除後の連続した ID への再割り当て（`EntityRemap`）。 |

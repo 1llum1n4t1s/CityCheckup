@@ -26,46 +26,39 @@ public sealed class DlcDiagnosticsTests
         });
 
     [TestMethod]
-    public void IsRelevant_OnlyForContentAndPrerequisiteHolders()
-    {
-        var d = Sample();
-        Assert.IsTrue(d.IsRelevant(Sf));
-        Assert.IsTrue(d.IsRelevant(SfHouse));
-        Assert.IsFalse(d.IsRelevant(Free));
-    }
-
-    [TestMethod]
     public void Record_IgnoresIrrelevantTargetsAndLimitsSamples()
     {
         var d = Sample();
+        // コンテンツそのものと前提の保有者だけが数える価値のある参照先。
+        Assert.IsTrue(d.IsRelevant(Sf));
+        Assert.IsTrue(d.IsRelevant(SfHouse));
+        Assert.IsFalse(d.IsRelevant(Free));
         Assert.IsFalse(d.Record(DlcRefPath.PrefabRef, Free));
         for (var i = 0; i < DlcDiagnostics.SamplesPerTarget; i++)
         {
             Assert.IsTrue(d.Record(DlcRefPath.PrefabRef, SfHouse));
-            d.AddSample(DlcRefPath.PrefabRef, SfHouse, new DlcReferenceSample(new EntityId(100 + i, 1), "SF House", false, 0, 0, 0));
+            // 先頭の見本は、保有 Entity・prefab 名・位置が行に出ることも確かめる。
+            var sample = i == 0
+                ? new DlcReferenceSample(new EntityId(500, 7), "Lot", true, 1.5f, 2f, -3f)
+                : new DlcReferenceSample(new EntityId(100 + i, 1), "SF House", false, 0, 0, 0);
+            d.AddSample(DlcRefPath.PrefabRef, SfHouse, sample);
         }
         Assert.IsFalse(d.Record(DlcRefPath.PrefabRef, SfHouse));
         var text = string.Join("\n", d.BuildLines(null, "x"));
         Assert.AreEqual(DlcDiagnostics.SamplesPerGroup, text.Split('\n').Count(l => l.Contains("sample ")));
         StringAssert.Contains(text, "via=ContentPrerequisite path=PrefabRef refs=4 targetPrefabs=1");
+        StringAssert.Contains(text, "sample entity=500:7 holderPrefab='Lot' target='SF House' pos=(1.5, 2.0, -3.0)");
     }
 
     [TestMethod]
     public void Predicted_IncludesPrerequisiteAndDirectReferences_ExcludesUnreferenced()
     {
         var d = Sample();
-        d.Record(DlcRefPath.PrefabRef, SfHouse);
+        // コンテンツそのものへの直接参照と、ModPrerequisite 経由の到達。参照されない Plain は含めず、名前順に並ぶ。
         d.Record(DlcRefPath.VehicleModelPrimary, Ports);
+        d.Record(DlcRefPath.Policy, ModPart);
         var names = d.PredictedContents().Select(c => c.Name).ToList();
         CollectionAssert.AreEqual(new[] { "BridgesAndPorts", "SanFranciscoSet" }, names);
-    }
-
-    [TestMethod]
-    public void Predicted_ModPrerequisiteReachesContent()
-    {
-        var d = Sample();
-        d.Record(DlcRefPath.Policy, ModPart);
-        CollectionAssert.AreEqual(new[] { "SanFranciscoSet" }, d.PredictedContents().Select(c => c.Name).ToList());
     }
 
     [TestMethod]
@@ -92,23 +85,11 @@ public sealed class DlcDiagnosticsTests
         StringAssert.Contains(text, "via=Direct path=PrefabRef refs=1 targetPrefabs=1");
         StringAssert.Contains(text, "dlc predicted (a save now would require): SanFranciscoSet");
         StringAssert.Contains(text, "dlc save metadata contentPrerequisites: SanFranciscoSet");
-    }
 
-    [TestMethod]
-    public void BuildLines_ReportsUnavailableMetadataWithReason()
-    {
-        var text = string.Join("\n", Sample().BuildLines(null, "no asset"));
-        StringAssert.Contains(text, "contentPrerequisites: unavailable (no asset)");
-        StringAssert.Contains(text, "dlc predicted (a save now would require): (none)");
-    }
-
-    [TestMethod]
-    public void Sample_ShowsEntityPrefabsAndPosition()
-    {
-        var d = Sample();
-        Assert.IsTrue(d.Record(DlcRefPath.UnderConstruction, SfHouse));
-        d.AddSample(DlcRefPath.UnderConstruction, SfHouse, new DlcReferenceSample(new EntityId(500, 7), "Lot", true, 1.5f, 2f, -3f));
-        StringAssert.Contains(string.Join("\n", d.BuildLines(null, null)), "sample entity=500:7 holderPrefab='Lot' target='SF House' pos=(1.5, 2.0, -3.0)");
+        // メタデータを読めないときは理由を添え、予測は「なし」になる。
+        var unavailable = string.Join("\n", Sample().BuildLines(null, "no asset"));
+        StringAssert.Contains(unavailable, "contentPrerequisites: unavailable (no asset)");
+        StringAssert.Contains(unavailable, "dlc predicted (a save now would require): (none)");
     }
 
     [TestMethod]
