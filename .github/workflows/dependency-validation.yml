@@ -1,0 +1,51 @@
+name: Dependency validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # dependabot.yml が更新する3系統（cargo・nuget・bun）を、AGENTS.md のコマンドで検証する。
+  validate:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: 11.0.x
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+      - name: Rust build
+        run: cargo build --release --locked
+      - name: Rust test
+        run: cargo test --locked
+      - name: Core tests
+        run: dotnet test mod/tests/CityCheckup.Core.Tests
+      - name: UI install
+        working-directory: mod/ui
+        run: bun install --frozen-lockfile
+      - name: UI typecheck
+        working-directory: mod/ui
+        run: bun run typecheck
+      - name: UI build
+        working-directory: mod/ui
+        run: bun run build
